@@ -1,0 +1,17 @@
+# Streamlit theme - IBM Carbon Design System (White theme)
+# Full token reference: docs/design.md
+
+[theme]
+base = "light"
+primaryColor = "#0f62fe"          # Blue 60
+backgroundColor = "#ffffff"       # $background
+secondaryBackgroundColor = "#f4f4f4"  # Gray 10, $layer-01
+textColor = "#161616"             # Gray 100
+font = "sans serif"
+
+[server]
+headless = true
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false

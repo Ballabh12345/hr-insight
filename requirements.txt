@@ -1,0 +1,28 @@
+# HR Insight - Smart HR Decision Support Platform
+# Python 3.12.10
+#
+# Pinned to the versions verified present/installable on the target machine.
+
+# --- Core ---
+streamlit==1.65.0
+pandas==3.0.6
+numpy==2.5.3
+scikit-learn==1.9.1
+scipy>=1.11
+
+# --- Visualisation ---
+plotly==7.1.0
+matplotlib==3.11.2
+
+# --- Fairness & Explainability ---
+fairlearn==0.15.0
+shap==0.54.1
+
+# --- Web agent (assistant + job-posting scraper) ---
+tinyfish==0.10.0
+
+# --- Persistence / utility ---
+joblib==1.6.0
+
+# --- Testing ---
+pytest==9.1.1

@@ -1,0 +1,39 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Tests / tooling ---
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Secrets ---
+.env
+.env.local
+
+# --- Synthetic datasets (regenerate with: python ml/generate_synthetic.py) ---
+# ~3 MB each; deterministic from seed 42, so they are not worth versioning.
+data/processed/synthetic_employees_*.csv
+
+# --- Local database (regenerate with: make seed) ---
+data/db/*.db
+data/db/*.sqlite3
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- NOTE: model artifacts under ml/artifacts/*.pkl are intentionally COMMITTED ---
+# They are small (<10MB total) and let a fresh clone run the app without retraining.

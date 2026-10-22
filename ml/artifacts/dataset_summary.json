@@ -1,0 +1,102 @@
+{
+  "n_employees": 1470,
+  "attrition_rate": 0.16122448979591836,
+  "high_risk_count": 91,
+  "high_risk_rate": 0.06190476190476191,
+  "medium_risk_count": 220,
+  "low_risk_count": 1159,
+  "mean_probability": 0.1595070074829932,
+  "departments": {
+    "Research & Development": 961,
+    "Sales": 446,
+    "Human Resources": 63
+  },
+  "risk_by_department": {
+    "Human Resources": {
+      "mean": 0.1909,
+      "count": 63,
+      "sum": 12.0251
+    },
+    "Research & Development": {
+      "mean": 0.1361,
+      "count": 961,
+      "sum": 130.8341
+    },
+    "Sales": {
+      "mean": 0.2054,
+      "count": 446,
+      "sum": 91.6161
+    }
+  },
+  "ninebox_counts": {
+    "Future Leader": 271,
+    "Needs Attention": 263,
+    "Core Player": 195,
+    "Inconsistent Performer": 153,
+    "Effective Performer": 150,
+    "High Potential": 145,
+    "Star Performer": 137,
+    "Trusted Professional": 82,
+    "Growth Prospect": 74
+  },
+  "ninebox_risk": {
+    "Core Player": {
+      "mean": 0.1585,
+      "count": 195
+    },
+    "Effective Performer": {
+      "mean": 0.1177,
+      "count": 150
+    },
+    "Future Leader": {
+      "mean": 0.0939,
+      "count": 271
+    },
+    "Growth Prospect": {
+      "mean": 0.2221,
+      "count": 74
+    },
+    "High Potential": {
+      "mean": 0.1491,
+      "count": 145
+    },
+    "Inconsistent Performer": {
+      "mean": 0.2174,
+      "count": 153
+    },
+    "Needs Attention": {
+      "mean": 0.2541,
+      "count": 263
+    },
+    "Star Performer": {
+      "mean": 0.1073,
+      "count": 137
+    },
+    "Trusted Professional": {
+      "mean": 0.0928,
+      "count": 82
+    }
+  },
+  "risk_band_counts": {
+    "Low": 1159,
+    "Medium": 220,
+    "High": 91
+  },
+  "model": {
+    "selected": "logistic_regression",
+    "calibration": "sigmoid",
+    "decision_threshold": 0.33246551863131846,
+    "test_metrics": {
+      "accuracy": 0.8435374149659864,
+      "precision": 0.5116279069767442,
+      "recall": 0.46808510638297873,
+      "f1": 0.4888888888888889,
+      "matthews_corrcoef": 0.3972817683573185,
+      "roc_auc": 0.8132483418037729,
+      "pr_auc": 0.5837618062377506,
+      "log_loss": 0.3393712490938116,
+      "brier_score": 0.09881615263331404
+    }
+  },
+  "built_seconds": 0.65
+}

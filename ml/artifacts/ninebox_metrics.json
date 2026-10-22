@@ -1,0 +1,147 @@
+{
+  "n_clusters": 6,
+  "selected_silhouette": 0.27818936264419414,
+  "silhouette_by_k": {
+    "3": 0.24914097340084787,
+    "4": 0.26513836576215116,
+    "5": 0.270127623818644,
+    "6": 0.27818936264419414,
+    "7": 0.23765574495989567,
+    "8": 0.24625332984817552
+  },
+  "cluster_tier": {
+    "4": "Low",
+    "1": "Low",
+    "2": "Medium",
+    "5": "Medium",
+    "0": "High",
+    "3": "High"
+  },
+  "cluster_growth": {
+    "0": 0.2148090529178775,
+    "1": -0.43826389247929315,
+    "2": -0.39635300128203704,
+    "3": 0.7118225660034487,
+    "4": -1.1834048095909544,
+    "5": 0.03854021216817818
+  },
+  "potential_features": [
+    "JobInvolvement",
+    "TrainingTimesLastYear",
+    "YearsSinceLastPromotion",
+    "PromotionVelocity",
+    "YearsAtCompany"
+  ],
+  "growth_features": [
+    "JobInvolvement",
+    "TrainingTimesLastYear",
+    "YearsSinceLastPromotion"
+  ],
+  "engagement_components": [
+    "JobInvolvement",
+    "JobSatisfaction",
+    "EnvironmentSatisfaction",
+    "RelationshipSatisfaction",
+    "WorkLifeBalance",
+    "TrainingTimesLastYear"
+  ],
+  "classifier_features": [
+    "Age",
+    "BusinessTravel",
+    "DailyRate",
+    "Department",
+    "DistanceFromHome",
+    "Education",
+    "EducationField",
+    "Gender",
+    "HourlyRate",
+    "JobLevel",
+    "JobRole",
+    "MaritalStatus",
+    "MonthlyIncome",
+    "MonthlyRate",
+    "NumCompaniesWorked",
+    "OverTime",
+    "StockOptionLevel",
+    "TotalWorkingYears",
+    "YearsInCurrentRole",
+    "YearsWithCurrManager"
+  ],
+  "classifier_results": {
+    "logistic_regression": {
+      "best_params": {
+        "model__C": "0.01",
+        "model__class_weight": "balanced"
+      },
+      "cv_balanced_accuracy": {
+        "mean": 0.4270785091430215,
+        "std": 0.020222561240863846
+      },
+      "test_accuracy": 0.3843537414965986,
+      "test_macro_f1": 0.38595216021741785
+    },
+    "random_forest": {
+      "best_params": {
+        "model__class_weight": "balanced",
+        "model__max_depth": "12",
+        "model__min_samples_leaf": "5",
+        "model__n_estimators": "300"
+      },
+      "cv_balanced_accuracy": {
+        "mean": 0.469132343237881,
+        "std": 0.029118133058483608
+      },
+      "test_accuracy": 0.4387755102040816,
+      "test_macro_f1": 0.42935187631671495
+    },
+    "gradient_boosting": {
+      "best_params": {
+        "model__learning_rate": "0.1",
+        "model__max_depth": "2",
+        "model__n_estimators": "100"
+      },
+      "cv_balanced_accuracy": {
+        "mean": 0.4070806713639071,
+        "std": 0.017921753318087718
+      },
+      "test_accuracy": 0.42857142857142855,
+      "test_macro_f1": 0.3751781399077414
+    }
+  },
+  "classifier_selected": "random_forest",
+  "classifier_chance_level": 0.16666666666666666,
+  "ninebox_labels": {
+    "Low|Low": "Needs Attention",
+    "Low|Medium": "Inconsistent Performer",
+    "Low|High": "Growth Prospect",
+    "Medium|Low": "Effective Performer",
+    "Medium|Medium": "Core Player",
+    "Medium|High": "High Potential",
+    "High|Low": "Trusted Professional",
+    "High|Medium": "Star Performer",
+    "High|High": "Future Leader"
+  },
+  "grid_counts": {
+    "Future Leader": 271,
+    "Needs Attention": 263,
+    "Core Player": 195,
+    "Inconsistent Performer": 153,
+    "Effective Performer": 150,
+    "High Potential": 145,
+    "Star Performer": 137,
+    "Trusted Professional": 82,
+    "Growth Prospect": 74
+  },
+  "performance_tier_counts": {
+    "Low": 490,
+    "Medium": 490,
+    "High": 490
+  },
+  "potential_tier_counts": {
+    "Low": 495,
+    "High": 490,
+    "Medium": 485
+  },
+  "leakage_finding": "PerformanceRating is a deterministic function of PercentSalaryHike in this dataset; with that proxy removed the rating is unpredictable (CV ROC-AUC 0.457 for rating 4 vs 3). The performance axis therefore uses an observed engagement composite rather than a predicted rating.",
+  "training_seconds": 23.71
+}

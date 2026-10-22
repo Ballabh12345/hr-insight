@@ -1,0 +1,627 @@
+{
+  "random_state": 42,
+  "test_size": 0.2,
+  "baseline_audit": {
+    "groups": {
+      "Gender": {
+        "selection_rate": {
+          "Female": 0.0603448275862069,
+          "Male": 0.07865168539325842
+        },
+        "true_positive_rate": {
+          "Female": 0.375,
+          "Male": 0.2903225806451613
+        },
+        "false_positive_rate": {
+          "Female": 0.01,
+          "Male": 0.034013605442176874
+        },
+        "count": {
+          "Female": 116,
+          "Male": 178
+        },
+        "summary": {
+          "demographic_parity_difference": 0.018306857807051526,
+          "demographic_parity_ratio": 0.7672413793103449,
+          "equal_opportunity_difference": 0.08467741935483869,
+          "equalized_odds_difference": 0.08467741935483869
+        }
+      },
+      "AgeBand": {
+        "selection_rate": {
+          "18-25": 0.25925925925925924,
+          "26-35": 0.0743801652892562,
+          "36-45": 0.04081632653061224,
+          "46+": 0.020833333333333332
+        },
+        "true_positive_rate": {
+          "18-25": 0.7142857142857143,
+          "26-35": 0.35,
+          "36-45": 0.18181818181818182,
+          "46+": 0.1111111111111111
+        },
+        "false_positive_rate": {
+          "18-25": 0.1,
+          "26-35": 0.019801980198019802,
+          "36-45": 0.022988505747126436,
+          "46+": 0.0
+        },
+        "count": {
+          "18-25": 27,
+          "26-35": 121,
+          "36-45": 98,
+          "46+": 48
+        },
+        "summary": {
+          "demographic_parity_difference": 0.2384259259259259,
+          "demographic_parity_ratio": 0.08035714285714286,
+          "equal_opportunity_difference": 0.6031746031746033,
+          "equalized_odds_difference": 0.6031746031746033
+        }
+      },
+      "MaritalStatus": {
+        "selection_rate": {
+          "Divorced": 0.0,
+          "Married": 0.045112781954887216,
+          "Single": 0.15463917525773196
+        },
+        "true_positive_rate": {
+          "Divorced": 0.0,
+          "Married": 0.2222222222222222,
+          "Single": 0.44
+        },
+        "false_positive_rate": {
+          "Divorced": 0.0,
+          "Married": 0.017391304347826087,
+          "Single": 0.05555555555555555
+        },
+        "count": {
+          "Divorced": 64,
+          "Married": 133,
+          "Single": 97
+        },
+        "summary": {
+          "demographic_parity_difference": 0.15463917525773196,
+          "demographic_parity_ratio": 0.0,
+          "equal_opportunity_difference": 0.44,
+          "equalized_odds_difference": 0.44
+        }
+      },
+      "Department": {
+        "selection_rate": {
+          "Human Resources": 0.06666666666666667,
+          "Research & Development": 0.03553299492385787,
+          "Sales": 0.15853658536585366
+        },
+        "true_positive_rate": {
+          "Human Resources": 0.0,
+          "Research & Development": 0.13793103448275862,
+          "Sales": 0.6875
+        },
+        "false_positive_rate": {
+          "Human Resources": 0.07692307692307693,
+          "Research & Development": 0.017857142857142856,
+          "Sales": 0.030303030303030304
+        },
+        "count": {
+          "Human Resources": 15,
+          "Research & Development": 197,
+          "Sales": 82
+        },
+        "summary": {
+          "demographic_parity_difference": 0.1230035904419958,
+          "demographic_parity_ratio": 0.2241311987504881,
+          "equal_opportunity_difference": 0.6875,
+          "equalized_odds_difference": 0.6875
+        }
+      }
+    },
+    "worst_gap": {
+      "Gender": 0.08467741935483869,
+      "AgeBand": 0.6031746031746033,
+      "MaritalStatus": 0.44,
+      "Department": 0.6875
+    }
+  },
+  "mitigation": {
+    "baseline": {
+      "groups": {
+        "Gender": {
+          "selection_rate": {
+            "Female": 0.08620689655172414,
+            "Male": 0.09550561797752809
+          },
+          "true_positive_rate": {
+            "Female": 0.4375,
+            "Male": 0.3225806451612903
+          },
+          "false_positive_rate": {
+            "Female": 0.03,
+            "Male": 0.047619047619047616
+          },
+          "count": {
+            "Female": 116,
+            "Male": 178
+          },
+          "summary": {
+            "demographic_parity_difference": 0.009298721425803944,
+            "demographic_parity_ratio": 0.9026369168356999,
+            "equal_opportunity_difference": 0.11491935483870969,
+            "equalized_odds_difference": 0.11491935483870969
+          }
+        },
+        "AgeBand": {
+          "selection_rate": {
+            "18-25": 0.37037037037037035,
+            "26-35": 0.08264462809917356,
+            "36-45": 0.061224489795918366,
+            "46+": 0.020833333333333332
+          },
+          "true_positive_rate": {
+            "18-25": 0.7142857142857143,
+            "26-35": 0.4,
+            "36-45": 0.2727272727272727,
+            "46+": 0.1111111111111111
+          },
+          "false_positive_rate": {
+            "18-25": 0.25,
+            "26-35": 0.019801980198019802,
+            "36-45": 0.034482758620689655,
+            "46+": 0.0
+          },
+          "count": {
+            "18-25": 27,
+            "26-35": 121,
+            "36-45": 98,
+            "46+": 48
+          },
+          "summary": {
+            "demographic_parity_difference": 0.34953703703703703,
+            "demographic_parity_ratio": 0.05625,
+            "equal_opportunity_difference": 0.6031746031746033,
+            "equalized_odds_difference": 0.6031746031746033
+          }
+        },
+        "MaritalStatus": {
+          "selection_rate": {
+            "Divorced": 0.0,
+            "Married": 0.045112781954887216,
+            "Single": 0.21649484536082475
+          },
+          "true_positive_rate": {
+            "Divorced": 0.0,
+            "Married": 0.2222222222222222,
+            "Single": 0.52
+          },
+          "false_positive_rate": {
+            "Divorced": 0.0,
+            "Married": 0.017391304347826087,
+            "Single": 0.1111111111111111
+          },
+          "count": {
+            "Divorced": 64,
+            "Married": 133,
+            "Single": 97
+          },
+          "summary": {
+            "demographic_parity_difference": 0.21649484536082475,
+            "demographic_parity_ratio": 0.0,
+            "equal_opportunity_difference": 0.52,
+            "equalized_odds_difference": 0.52
+          }
+        },
+        "Department": {
+          "selection_rate": {
+            "Human Resources": 0.06666666666666667,
+            "Research & Development": 0.050761421319796954,
+            "Sales": 0.1951219512195122
+          },
+          "true_positive_rate": {
+            "Human Resources": 0.0,
+            "Research & Development": 0.20689655172413793,
+            "Sales": 0.6875
+          },
+          "false_positive_rate": {
+            "Human Resources": 0.07692307692307693,
+            "Research & Development": 0.023809523809523808,
+            "Sales": 0.07575757575757576
+          },
+          "count": {
+            "Human Resources": 15,
+            "Research & Development": 197,
+            "Sales": 82
+          },
+          "summary": {
+            "demographic_parity_difference": 0.14436052989971526,
+            "demographic_parity_ratio": 0.26015228426395937,
+            "equal_opportunity_difference": 0.6875,
+            "equalized_odds_difference": 0.6875
+          }
+        }
+      },
+      "worst_gap": {
+        "Gender": 0.11491935483870969,
+        "AgeBand": 0.6031746031746033,
+        "MaritalStatus": 0.52,
+        "Department": 0.6875
+      }
+    },
+    "reweighting": {
+      "groups": {
+        "Gender": {
+          "selection_rate": {
+            "Female": 0.08620689655172414,
+            "Male": 0.0898876404494382
+          },
+          "true_positive_rate": {
+            "Female": 0.4375,
+            "Male": 0.3225806451612903
+          },
+          "false_positive_rate": {
+            "Female": 0.03,
+            "Male": 0.04081632653061224
+          },
+          "count": {
+            "Female": 116,
+            "Male": 178
+          },
+          "summary": {
+            "demographic_parity_difference": 0.003680743897714056,
+            "demographic_parity_ratio": 0.9590517241379312,
+            "equal_opportunity_difference": 0.11491935483870969,
+            "equalized_odds_difference": 0.11491935483870969
+          }
+        },
+        "AgeBand": {
+          "selection_rate": {
+            "18-25": 0.37037037037037035,
+            "26-35": 0.09090909090909091,
+            "36-45": 0.04081632653061224,
+            "46+": 0.020833333333333332
+          },
+          "true_positive_rate": {
+            "18-25": 0.7142857142857143,
+            "26-35": 0.45,
+            "36-45": 0.18181818181818182,
+            "46+": 0.1111111111111111
+          },
+          "false_positive_rate": {
+            "18-25": 0.25,
+            "26-35": 0.019801980198019802,
+            "36-45": 0.022988505747126436,
+            "46+": 0.0
+          },
+          "count": {
+            "18-25": 27,
+            "26-35": 121,
+            "36-45": 98,
+            "46+": 48
+          },
+          "summary": {
+            "demographic_parity_difference": 0.34953703703703703,
+            "demographic_parity_ratio": 0.05625,
+            "equal_opportunity_difference": 0.6031746031746033,
+            "equalized_odds_difference": 0.6031746031746033
+          }
+        },
+        "MaritalStatus": {
+          "selection_rate": {
+            "Divorced": 0.0,
+            "Married": 0.045112781954887216,
+            "Single": 0.20618556701030927
+          },
+          "true_positive_rate": {
+            "Divorced": 0.0,
+            "Married": 0.2222222222222222,
+            "Single": 0.52
+          },
+          "false_positive_rate": {
+            "Divorced": 0.0,
+            "Married": 0.017391304347826087,
+            "Single": 0.09722222222222222
+          },
+          "count": {
+            "Divorced": 64,
+            "Married": 133,
+            "Single": 97
+          },
+          "summary": {
+            "demographic_parity_difference": 0.20618556701030927,
+            "demographic_parity_ratio": 0.0,
+            "equal_opportunity_difference": 0.52,
+            "equalized_odds_difference": 0.52
+          }
+        },
+        "Department": {
+          "selection_rate": {
+            "Human Resources": 0.06666666666666667,
+            "Research & Development": 0.050761421319796954,
+            "Sales": 0.18292682926829268
+          },
+          "true_positive_rate": {
+            "Human Resources": 0.0,
+            "Research & Development": 0.20689655172413793,
+            "Sales": 0.6875
+          },
+          "false_positive_rate": {
+            "Human Resources": 0.07692307692307693,
+            "Research & Development": 0.023809523809523808,
+            "Sales": 0.06060606060606061
+          },
+          "count": {
+            "Human Resources": 15,
+            "Research & Development": 197,
+            "Sales": 82
+          },
+          "summary": {
+            "demographic_parity_difference": 0.13216540794849574,
+            "demographic_parity_ratio": 0.27749576988155666,
+            "equal_opportunity_difference": 0.6875,
+            "equalized_odds_difference": 0.6875
+          }
+        }
+      },
+      "worst_gap": {
+        "Gender": 0.11491935483870969,
+        "AgeBand": 0.6031746031746033,
+        "MaritalStatus": 0.52,
+        "Department": 0.6875
+      }
+    },
+    "equalized_odds": {
+      "groups": {
+        "Gender": {
+          "selection_rate": {
+            "Female": 0.10344827586206896,
+            "Male": 0.11235955056179775
+          },
+          "true_positive_rate": {
+            "Female": 0.5,
+            "Male": 0.3870967741935484
+          },
+          "false_positive_rate": {
+            "Female": 0.04,
+            "Male": 0.05442176870748299
+          },
+          "count": {
+            "Female": 116,
+            "Male": 178
+          },
+          "summary": {
+            "demographic_parity_difference": 0.008911274699728786,
+            "demographic_parity_ratio": 0.9206896551724139,
+            "equal_opportunity_difference": 0.11290322580645162,
+            "equalized_odds_difference": 0.11290322580645162
+          }
+        },
+        "AgeBand": {
+          "selection_rate": {
+            "18-25": 0.37037037037037035,
+            "26-35": 0.09917355371900827,
+            "36-45": 0.07142857142857142,
+            "46+": 0.0625
+          },
+          "true_positive_rate": {
+            "18-25": 0.7142857142857143,
+            "26-35": 0.5,
+            "36-45": 0.36363636363636365,
+            "46+": 0.1111111111111111
+          },
+          "false_positive_rate": {
+            "18-25": 0.25,
+            "26-35": 0.019801980198019802,
+            "36-45": 0.034482758620689655,
+            "46+": 0.05128205128205128
+          },
+          "count": {
+            "18-25": 27,
+            "26-35": 121,
+            "36-45": 98,
+            "46+": 48
+          },
+          "summary": {
+            "demographic_parity_difference": 0.30787037037037035,
+            "demographic_parity_ratio": 0.16875,
+            "equal_opportunity_difference": 0.6031746031746033,
+            "equalized_odds_difference": 0.6031746031746033
+          }
+        },
+        "MaritalStatus": {
+          "selection_rate": {
+            "Divorced": 0.03125,
+            "Married": 0.045112781954887216,
+            "Single": 0.24742268041237114
+          },
+          "true_positive_rate": {
+            "Divorced": 0.5,
+            "Married": 0.2222222222222222,
+            "Single": 0.56
+          },
+          "false_positive_rate": {
+            "Divorced": 0.0,
+            "Married": 0.017391304347826087,
+            "Single": 0.1388888888888889
+          },
+          "count": {
+            "Divorced": 64,
+            "Married": 133,
+            "Single": 97
+          },
+          "summary": {
+            "demographic_parity_difference": 0.21617268041237114,
+            "demographic_parity_ratio": 0.12630208333333331,
+            "equal_opportunity_difference": 0.33777777777777784,
+            "equalized_odds_difference": 0.33777777777777784
+          }
+        },
+        "Department": {
+          "selection_rate": {
+            "Human Resources": 0.06666666666666667,
+            "Research & Development": 0.05583756345177665,
+            "Sales": 0.24390243902439024
+          },
+          "true_positive_rate": {
+            "Human Resources": 0.0,
+            "Research & Development": 0.2413793103448276,
+            "Sales": 0.8125
+          },
+          "false_positive_rate": {
+            "Human Resources": 0.07692307692307693,
+            "Research & Development": 0.023809523809523808,
+            "Sales": 0.10606060606060606
+          },
+          "count": {
+            "Human Resources": 15,
+            "Research & Development": 197,
+            "Sales": 82
+          },
+          "summary": {
+            "demographic_parity_difference": 0.1880648755726136,
+            "demographic_parity_ratio": 0.22893401015228426,
+            "equal_opportunity_difference": 0.8125,
+            "equalized_odds_difference": 0.8125
+          }
+        }
+      },
+      "worst_gap": {
+        "Gender": 0.11290322580645162,
+        "AgeBand": 0.6031746031746033,
+        "MaritalStatus": 0.33777777777777784,
+        "Department": 0.8125
+      }
+    }
+  },
+  "risk_regression": {
+    "baseline": {
+      "Gender": {
+        "mae_by_group": {
+          "Female": 0.22722139078090178,
+          "Male": 0.21831327472076223
+        },
+        "mae_ratio": 1.0408042803239228,
+        "mean_absolute_error": 0.22182804160163364
+      },
+      "AgeBand": {
+        "mae_by_group": {
+          "18-25": 0.3182921795350993,
+          "36-45": 0.1604567836094745,
+          "26-35": 0.2440280420975519,
+          "46+": 0.23690411449792326
+        },
+        "mae_ratio": 1.9836629675300628,
+        "mean_absolute_error": 0.22182804160163364
+      },
+      "MaritalStatus": {
+        "mae_by_group": {
+          "Married": 0.20481784955228408,
+          "Divorced": 0.17164498286313729,
+          "Single": 0.2782617663627393
+        },
+        "mae_ratio": 1.621147100959041,
+        "mean_absolute_error": 0.22182804160163364
+      },
+      "Department": {
+        "mae_by_group": {
+          "Sales": 0.2503698018867415,
+          "Research & Development": 0.20883277719036353,
+          "Human Resources": 0.23647089131105775
+        },
+        "mae_ratio": 1.1989008873760967,
+        "mean_absolute_error": 0.22182804160163364
+      }
+    },
+    "reweighted": {
+      "Gender": {
+        "mae_by_group": {
+          "Female": 0.22470020429221824,
+          "Male": 0.22601611179896874
+        },
+        "mae_ratio": 1.0058562808649663,
+        "mean_absolute_error": 0.22549691019766585
+      },
+      "AgeBand": {
+        "mae_by_group": {
+          "18-25": 0.31699141599759856,
+          "36-45": 0.16406702270843448,
+          "26-35": 0.2550900981027137,
+          "46+": 0.2248511097984097
+        },
+        "mae_ratio": 1.9320848928972636,
+        "mean_absolute_error": 0.22549691019766585
+      },
+      "MaritalStatus": {
+        "mae_by_group": {
+          "Married": 0.20458584204563768,
+          "Divorced": 0.1737483266203198,
+          "Single": 0.2883121824983864
+        },
+        "mae_ratio": 1.6593666719358688,
+        "mean_absolute_error": 0.22549691019766585
+      },
+      "Department": {
+        "mae_by_group": {
+          "Sales": 0.25248824599494496,
+          "Research & Development": 0.2120409313573386,
+          "Human Resources": 0.2546661299421711
+        },
+        "mae_ratio": 1.201023445388471,
+        "mean_absolute_error": 0.22549691019766585
+      }
+    },
+    "test_mae": 0.22182804160163364
+  },
+  "power_curve": {
+    "datasets": [
+      {
+        "bias_strength": 0.0,
+        "file": "synthetic_employees_b0.csv",
+        "attrition_rate": 0.2571,
+        "selection_rate_female_rnd": 0.12387612387612387,
+        "selection_rate_male_rnd": 0.07292327203551047,
+        "detected_gap": 0.050952851840613406,
+        "model_roc_auc": 0.7103875797979585
+      },
+      {
+        "bias_strength": 0.5,
+        "file": "synthetic_employees_b0.5.csv",
+        "attrition_rate": 0.27935,
+        "selection_rate_female_rnd": 0.2781655034895314,
+        "selection_rate_male_rnd": 0.0853960396039604,
+        "detected_gap": 0.19276946388557098,
+        "model_roc_auc": 0.702883976112866
+      },
+      {
+        "bias_strength": 1.0,
+        "file": "synthetic_employees_b1.csv",
+        "attrition_rate": 0.30515,
+        "selection_rate_female_rnd": 0.36619718309859156,
+        "selection_rate_male_rnd": 0.0935929648241206,
+        "detected_gap": 0.27260421827447096,
+        "model_roc_auc": 0.7287288924568522
+      },
+      {
+        "bias_strength": 2.0,
+        "file": "synthetic_employees_b2.csv",
+        "attrition_rate": 0.3597,
+        "selection_rate_female_rnd": 0.8594802694898941,
+        "selection_rate_male_rnd": 0.0826284970722186,
+        "detected_gap": 0.7768517724176754,
+        "model_roc_auc": 0.777637324066916
+      }
+    ]
+  },
+  "sensitive_attributes": [
+    "Gender",
+    "AgeBand",
+    "MaritalStatus",
+    "Department"
+  ],
+  "primary_sensitive_attribute": "Gender",
+  "limitations": [
+    "Equalized-odds post-processing requires the sensitive attribute to be known at decision time, which is not always operationally available.",
+    "Reweighting cannot remove bias that is encoded in features (Kossen et al., 2021); it only balances the label distribution across groups.",
+    "Fairness is measured with respect to the chosen metrics on this dataset only. The IBM dataset is fictional, so no conclusion is drawn about real employment decisions.",
+    "Groups with small counts produce unstable rates; the Human Resources department has only 63 employees in total."
+  ],
+  "training_seconds": 2.77
+}

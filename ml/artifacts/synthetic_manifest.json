@@ -1,0 +1,30 @@
+{
+  "n": 20000,
+  "seed": 42,
+  "files": [
+    {
+      "bias_strength": 0.0,
+      "path": "synthetic_employees_b0.csv",
+      "attrition_rate": 0.2571
+    },
+    {
+      "bias_strength": 0.5,
+      "path": "synthetic_employees_b0.5.csv",
+      "attrition_rate": 0.27935
+    },
+    {
+      "bias_strength": 1.0,
+      "path": "synthetic_employees_b1.csv",
+      "attrition_rate": 0.30515
+    },
+    {
+      "bias_strength": 2.0,
+      "path": "synthetic_employees_b2.csv",
+      "attrition_rate": 0.3597
+    }
+  ],
+  "bias_group": {
+    "gender": "Female",
+    "department": "Research & Development"
+  }
+}
