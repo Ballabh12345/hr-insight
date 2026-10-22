@@ -22,6 +22,21 @@ No Kaggle account is needed — the dataset is fetched from a checksum-verified 
 
 ---
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Overview](docs/screenshots/01_overview.png) | ![Employee detail](docs/screenshots/03_employee_detail.png) |
+| **Overview** — KPIs, risk by department, the talent matrix shaded by segment risk | **Employee detail** — risk meter, talent placement, SHAP reason codes, fairness context, accept/override |
+| ![Fairness audit](docs/screenshots/04_fairness_audit.png) | ![Model performance](docs/screenshots/05_model_performance.png) |
+| **Fairness audit** — disparate impact by group, mitigation comparison, detector power curve | **Model performance** — model comparison, ROC/PR/calibration curves, global SHAP |
+| ![Assistant](docs/screenshots/08_assistant_conversation.png) | |
+| **Assistant** — internal questions answered locally and for free; live market questions via TinyFish | |
+
+Regenerate them with `python ops/scripts/screenshots.py --port 8601` while the app is running.
+
+---
+
 ## What it does
 
 | MVP | Module | Method | Result |

@@ -10,7 +10,7 @@ from app.services import audit_service, data_service as data, model_service
 
 
 def _risk_gauge(probability: float, band: str) -> go.Figure:
-    """A horizontal risk meter with band thresholds marked.
+    """A horizontal risk meter with the band thresholds marked.
 
     Plotly's gauge indicator only supports ``angular`` and ``bullet`` shapes, and a
     bullet gauge reads poorly at this size. A single horizontal bar with threshold
@@ -23,39 +23,40 @@ def _risk_gauge(probability: float, band: str) -> go.Figure:
             y=["Attrition risk"],
             orientation="h",
             marker={"color": color},
-            width=0.45,
+            width=0.4,
             text=f"<b>{probability:.0%}</b>",
             textposition="outside",
             textfont={"size": 22, "color": theme.TOKENS["text_primary"]},
             hovertemplate="Attrition risk %{x:.1%}<extra></extra>",
         )
     )
-    for threshold, label in ((0.25, "Low / Medium"), (0.55, "Medium / High")):
+    for threshold in (0.25, 0.55):
         fig.add_vline(
             x=threshold,
             line={"color": theme.TOKENS["border_strong"], "width": 1, "dash": "dash"},
         )
-        fig.add_annotation(
-            x=threshold,
-            y=1.32,
-            text=label,
-            showarrow=False,
-            font={"size": 10, "color": theme.TOKENS["text_helper"]},
-        )
     fig.update_layout(
-        height=170,
-        margin=dict(l=8, r=40, t=30, b=8),
+        height=120,
+        margin=dict(l=4, r=52, t=6, b=6),
         showlegend=False,
-        bargap=0.6,
+        bargap=0.5,
         xaxis={
             "range": [0, 1],
-            "tickformat": ".0%",
+            "tickmode": "array",
+            "tickvals": [0, 0.25, 0.55, 1.0],
+            "ticktext": ["0%", "25%", "55%", "100%"],
             "gridcolor": theme.TOKENS["border_subtle"],
             "zeroline": False,
             "showline": False,
             "ticks": "",
+            "tickfont": {"size": 10, "color": theme.TOKENS["text_helper"]},
         },
-        yaxis={"showgrid": False, "zeroline": False, "showticklabels": False, "ticks": ""},
+        yaxis={
+            "showgrid": False,
+            "zeroline": False,
+            "showticklabels": False,
+            "ticks": "",
+        },
     )
     return fig
 
@@ -96,8 +97,10 @@ def render() -> None:
                 config={"displayModeBar": False},
             )
             st.markdown(
-                f'<div style="text-align:center; margin-top:-0.5rem;">'
-                f'{theme.risk_badge(str(emp["risk_band"]))}</div>',
+                f'<div style="text-align:center; margin-top:0.25rem;">'
+                f'{theme.risk_badge(str(emp["risk_band"]))}'
+                f'<div class="small-note" style="margin-top:0.5rem;">'
+                f"Bands: &lt;25% &middot; 25-55% &middot; &gt;55%</div></div>",
                 unsafe_allow_html=True,
             )
 

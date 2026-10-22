@@ -1,0 +1,12 @@
+# Optional development tooling - not required to run the app or the tests.
+#
+#   pip install -r requirements-dev.txt
+#   playwright install chromium      # only needed for screenshots
+#
+# The notebooks additionally need a Jupyter install:
+#   pip install jupyterlab nbclient
+
+-r requirements.txt
+
+# Screenshot / demo tooling (ops/scripts/screenshots.py, assistant_smoke.py)
+playwright==1.64.0

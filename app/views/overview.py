@@ -14,12 +14,6 @@ PERFORMANCE_ROWS = ["High", "Medium", "Low"]
 POTENTIAL_COLS = ["Low", "Medium", "High"]
 
 
-def _sequential_scale() -> list:
-    """Build a Plotly colourscale from the Carbon sequential Blue ramp."""
-    n = len(theme.SEQUENTIAL) - 1
-    return [[i / n, c] for i, c in enumerate(theme.SEQUENTIAL)]
-
-
 def render() -> None:
     df = data.load_employees()
     summary = data.load_summary()
@@ -71,23 +65,26 @@ def render() -> None:
                     High_risk=("risk_band", lambda s: (s == "High").sum()),
                     Headcount=("EmployeeNumber", "count"),
                 )
-                .sort_values("Mean_probability", ascending=False)
+                .sort_values("Mean_probability", ascending=True)  # Plotly puts the first
+                # row at the bottom, so ascending puts the highest risk at the top.
             )
             fig = px.bar(
                 dept,
                 x="Mean_probability",
                 y="Department",
                 orientation="h",
-                color="Mean_probability",
-                color_continuous_scale=theme.SEQUENTIAL,
-                labels={"Mean_probability": "Mean attrition probability"},
+                labels={"Mean_probability": "Mean attrition probability", "Department": ""},
                 hover_data={"Headcount": True, "High_risk": True},
             )
-            fig.update_layout(height=260, coloraxis_showscale=False, margin=dict(l=8, r=8, t=8, b=8))
-            fig.update_traces(marker_line_width=0, hovertemplate=(
-                "<b>%{y}</b><br>Mean risk %{x:.1%}<br>Headcount %{customdata[0]}"
-                "<br>High risk %{customdata[1]}<extra></extra>"
-            ))
+            fig.update_traces(
+                marker_color=theme.TOKENS["primary"],
+                marker_line_width=0,
+                hovertemplate=(
+                    "<b>%{y}</b><br>Mean risk %{x:.1%}<br>Headcount %{customdata[0]}"
+                    "<br>High risk %{customdata[1]}<extra></extra>"
+                ),
+            )
+            fig.update_layout(height=260, margin=dict(l=8, r=8, t=8, b=8))
             st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     # ------------------------------------------------------ risk band split
@@ -101,7 +98,7 @@ def render() -> None:
                     values=bands.values,
                     hole=0.62,
                     marker={
-                        "colors": [theme.RISK_COLORS[b][0] for b in bands.index],
+                        "colors": [theme.RISK_SERIES[b] for b in bands.index],
                         "line": {"color": "#ffffff", "width": 2},
                     },
                     textinfo="label+percent",
@@ -113,34 +110,45 @@ def render() -> None:
 
     # ------------------------------------------------------- nine-box grid
     st.markdown(theme.section_label("Talent matrix - engagement x potential"), unsafe_allow_html=True)
-    grid = pd.crosstab(df["performance_tier"], df["potential_tier"])
-    grid = grid.reindex(index=PERFORMANCE_ROWS, columns=POTENTIAL_COLS, fill_value=0)
     labels = ninebox.get("ninebox_labels", {})
-    text = [
-        [
-            f"{labels.get(f'{r}|{c}', '')}\n{grid.loc[r, c]} employees"
-            for c in POTENTIAL_COLS
-        ]
-        for r in PERFORMANCE_ROWS
-    ]
-
-    fig = go.Figure(
-        go.Heatmap(
-            z=grid.values,
-            x=[f"Potential: {c}" for c in POTENTIAL_COLS],
-            y=[f"Performance: {r}" for r in PERFORMANCE_ROWS],
-            text=text,
-            texttemplate="%{text}",
-            colorscale=_sequential_scale(),
-            showscale=False,
-            hovertemplate="%{y} / %{x}<br>%{z} employees<extra></extra>",
-            xgap=3,
-            ygap=3,
+    cell = (
+        df.groupby(["performance_tier", "potential_tier"], as_index=False)
+        .agg(
+            Mean_risk=("attrition_probability", "mean"),
+            Count=("EmployeeNumber", "count"),
         )
     )
-    fig.update_layout(height=320, margin=dict(l=8, r=8, t=8, b=8))
-    fig.update_xaxes(side="bottom")
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    cells: dict[tuple[str, str], tuple[str, str, float]] = {}
+    values: list[float] = []
+    for row in cell.itertuples():
+        key = (row.performance_tier, row.potential_tier)
+        cells[key] = (
+            labels.get(f"{key[0]}|{key[1]}", "-"),
+            f"{int(row.Count)} employees &middot; mean risk {row.Mean_risk:.0%}",
+            float(row.Mean_risk),
+        )
+        values.append(float(row.Mean_risk))
+
+    vmin = min(values) if values else 0.0
+    vmax = max(values) if values else 1.0
+    if vmax - vmin < 1e-9:
+        vmax = vmin + 1e-9
+
+    st.markdown(
+        theme.matrix_html(
+            rows=PERFORMANCE_ROWS,
+            cols=POTENTIAL_COLS,
+            cells=cells,
+            vmin=vmin,
+            vmax=vmax,
+            col_caption="POTENTIAL",
+            row_caption=(
+                "Tile shading is the mean predicted attrition risk in that segment - "
+                "the darker the tile, the higher the risk. All nine cells are occupied."
+            ),
+        ),
+        unsafe_allow_html=True,
+    )
 
     # ------------------------------------------- risk inside each nine-box
     left, right = st.columns(2, gap="large")
@@ -153,21 +161,22 @@ def render() -> None:
             cell = (
                 df.groupby("ninebox_label", as_index=False)
                 .agg(Mean_risk=("attrition_probability", "mean"), Employees=("EmployeeNumber", "count"))
-                .sort_values("Mean_risk", ascending=False)
-                .head(9)
+                .sort_values("Mean_risk", ascending=True)  # highest at the top
             )
             fig = px.bar(
                 cell,
                 x="Mean_risk",
                 y="ninebox_label",
                 orientation="h",
-                color="Mean_risk",
-                color_continuous_scale=theme.SEQUENTIAL,
                 labels={"Mean_risk": "Mean attrition probability", "ninebox_label": ""},
                 hover_data={"Employees": True},
             )
-            fig.update_layout(height=300, coloraxis_showscale=False, margin=dict(l=8, r=8, t=8, b=8))
-            fig.update_traces(marker_line_width=0)
+            fig.update_traces(
+                marker_color=theme.TOKENS["primary"],
+                marker_line_width=0,
+                hovertemplate="<b>%{y}</b><br>Mean risk %{x:.1%}<br>%{customdata[0]} employees<extra></extra>",
+            )
+            fig.update_layout(height=300, margin=dict(l=8, r=8, t=8, b=8))
             st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     with right:

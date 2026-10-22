@@ -94,6 +94,14 @@ RISK_COLORS: dict[str, tuple[str, str]] = {
     "Low": ("#198038", "#a7f0ba"),     # Green 60 on Green 20
 }
 
+#: Saturated mid-tones for chart marks (donut slices, bar series). Distinct from
+#: RISK_COLORS, which holds text-on-fill pairs for badges.
+RISK_SERIES: dict[str, str] = {
+    "High": "#fa4d56",    # Red 50
+    "Medium": "#ff832b",  # Orange 40
+    "Low": "#24a148",     # Green 50
+}
+
 #: Sequential Blue ramp, reversed, for a 3x3 nine-box heatmap.
 NINEBOX_SCALE: list[list[str]] = [
     ["#e0e0e0", "#d0e2ff", "#a6c8ff"],
@@ -118,6 +126,10 @@ html, body, [class*="css"], .stApp, button, input, textarea {{
 }}
 [data-testid="stDecoration"] {{ display: none !important; }}
 [data-testid="stStatusWidget"] {{ display: none !important; }}
+[data-testid="stToolbar"] {{ display: none !important; }}
+[data-testid="stAppDeployButton"] {{ display: none !important; }}
+[data-testid="stHeader"] {{ background: transparent; height: 0; }}
+[data-testid="stMainBlockContainer"] {{ padding-top: 1.5rem; }}
 
 /* (3) menu / footer / deploy chrome ------------------------------------ */
 #MainMenu {{ visibility: hidden !important; }}
@@ -147,10 +159,24 @@ footer {{ visibility: hidden !important; }}
     color: {TOKENS['sidebar_text_2']} !important;
 }}
 [data-testid="stSidebar"] [role="radiogroup"] label {{
-    padding: 0.45rem 0.75rem;
+    padding: 0.45rem 1rem;
     border-radius: 0;
     border-left: 3px solid transparent;
+    cursor: pointer;
 }}
+/* Streamlit renders the radio dot as a styled div (the input itself is already
+   visually hidden), so the dot wrapper has to be hidden rather than the input. */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div:first-child {{
+    display: none !important;
+}}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div {{
+    align-items: center;
+}}
+[data-testid="stSidebar"] [role="radiogroup"] input[type="radio"],
+[data-testid="stSidebar"] [role="radiogroup"] input[type="checkbox"] {{
+    display: none !important;
+}}
+[data-testid="stSidebar"] [role="radiogroup"] > div {{ gap: 0 !important; }}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {{
     background-color: {TOKENS['sidebar_hover_bg']};
 }}
@@ -416,3 +442,74 @@ def app_header(title: str, subtitle: str = "") -> str:
     """Render the page title block."""
     sub = f'<div class="app-subtitle">{subtitle}</div>' if subtitle else ""
     return f'<div class="app-title">{title}</div>{sub}'
+
+
+def heat_color(value: float, vmin: float, vmax: float) -> str:
+    """Map a value onto the Carbon sequential Blue ramp."""
+    if vmax <= vmin:
+        return SEQUENTIAL[0]
+    t = (value - vmin) / (vmax - vmin)
+    return SEQUENTIAL[int(round(t * (len(SEQUENTIAL) - 1)))]
+
+
+def heat_text_color(value: float, vmin: float, vmax: float) -> str:
+    """White on the dark half of the ramp, near-black on the light half."""
+    if vmax <= vmin:
+        return TOKENS["text_primary"]
+    t = (value - vmin) / (vmax - vmin)
+    return "#ffffff" if t > 0.5 else TOKENS["text_primary"]
+
+
+def matrix_html(
+    rows: list[str],
+    cols: list[str],
+    cells: dict[tuple[str, str], tuple[str, str, float]],
+    vmin: float,
+    vmax: float,
+    row_caption: str = "",
+    col_caption: str = "",
+) -> str:
+    """Render a 3x3 matrix as Carbon tiles.
+
+    ``cells`` maps ``(row, col)`` to ``(label, detail, value)``, where ``value`` drives
+    the fill colour. Building the grid from HTML rather than a Plotly heatmap gives
+    full control over the tile typography and per-cell text contrast.
+    """
+    out: list[str] = [
+        '<div style="display:grid; grid-template-columns: 150px repeat(%d, 1fr); '
+        'gap:3px; margin-top:0.5rem;">' % len(cols)
+    ]
+    out.append(
+        f'<div style="display:flex;align-items:flex-end;justify-content:flex-end;'
+        f'padding:0 0.5rem 0.35rem 0;font-size:0.6875rem;color:{TOKENS["text_helper"]};">'
+        f"{col_caption}</div>"
+    )
+    for col in cols:
+        out.append(
+            f'<div style="font-size:0.6875rem;color:{TOKENS["text_helper"]};'
+            f'padding:0 0.5rem 0.35rem 0;text-align:center;">{col}</div>'
+        )
+    for row in rows:
+        out.append(
+            f'<div style="display:flex;align-items:center;justify-content:flex-end;'
+            f'padding-right:0.75rem;font-size:0.75rem;color:{TOKENS["text_helper"]};'
+            f'height:86px;">{row}</div>'
+        )
+        for col in cols:
+            label, detail, value = cells.get((row, col), ("-", "", vmin))
+            bg = heat_color(value, vmin, vmax)
+            fg = heat_text_color(value, vmin, vmax)
+            out.append(
+                f'<div style="background:{bg};color:{fg};height:86px;'
+                f'border-radius:4px;padding:0.65rem 0.75rem;'
+                f'display:flex;flex-direction:column;justify-content:center;gap:0.2rem;">'
+                f'<div style="font-size:0.8125rem;font-weight:600;line-height:1.25;">{label}</div>'
+                f'<div style="font-size:0.6875rem;opacity:0.85;">{detail}</div>'
+                f"</div>"
+            )
+    out.append("</div>")
+    if row_caption:
+        out.append(
+            f'<div class="small-note" style="margin-top:0.6rem;">{row_caption}</div>'
+        )
+    return "".join(out)

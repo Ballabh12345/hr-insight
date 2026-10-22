@@ -26,3 +26,8 @@ joblib==1.6.0
 
 # --- Testing ---
 pytest==9.1.1
+
+# --- Optional: notebooks ---
+# The .ipynb files are plain JSON and run in any Jupyter install; they are not
+# required by the application or the test suite.
+#   pip install jupyterlab nbclient

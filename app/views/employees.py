@@ -71,7 +71,9 @@ def render() -> None:
 
     # -------------------------------------------------------------- table
     display = filtered[list(COLUMNS)].rename(columns=COLUMNS).copy()
-    display["Risk"] = display["Risk"].map(lambda v: f"{v:.1%}")
+    # Risk stays numeric so the ProgressColumn can render it as a bar; the column
+    # config scales it to a percentage.
+    display["Risk"] = display["Risk"] * 100
     display = display.sort_values("Risk", ascending=False)
 
     st.dataframe(
@@ -81,7 +83,7 @@ def render() -> None:
         height=520,
         column_config={
             "Risk": st.column_config.ProgressColumn(
-                "Risk", format="%.1f%%", min_value=0.0, max_value=1.0
+                "Risk", format="%.1f%%", min_value=0.0, max_value=100.0
             ),
         },
     )
