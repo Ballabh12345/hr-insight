@@ -97,7 +97,7 @@ def render() -> None:
                     )
                 )
                 fig.update_layout(height=320, margin=dict(l=8, r=8, t=8, b=8), showlegend=False)
-                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+                theme.chart(fig)
 
         with st.container(border=True):
             st.markdown(theme.section_label("Overrides by risk band"), unsafe_allow_html=True)
@@ -120,4 +120,4 @@ def render() -> None:
                     )
                 )
                 fig.update_layout(height=220, margin=dict(l=8, r=8, t=8, b=8), showlegend=False)
-                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+                theme.chart(fig)

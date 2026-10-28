@@ -18,7 +18,6 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -65,7 +64,6 @@ def main() -> None:
 
     raw = F.load_dataset(io.download_ibm_hr())
     cleaned = F.clean(raw)
-    cleaned["PromotionVelocity"] = cleaned["YearsAtCompany"] / cleaned["JobLevel"].clip(lower=1)
     # EmployeeNumber is dropped from the *model* feature space but kept as the row id.
     employee_number = raw["EmployeeNumber"]
 

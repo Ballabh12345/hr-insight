@@ -67,50 +67,53 @@ def render() -> None:
                 "delta_tone": "bad"
                 if summary["demographic_parity_difference"] > 0.1
                 else "",
+                "accent": "high" if summary["demographic_parity_difference"] > 0.1 else "low",
             }
         )
     st.markdown(theme.kpi_row(cards), unsafe_allow_html=True)
 
     # --------------------------------------------------- disparate impact
     st.markdown(theme.section_label("Disparate impact - model behaviour by group"), unsafe_allow_html=True)
+    st.markdown(
+        '<div class="small-note" style="margin-bottom:0.5rem;">'
+        "Open an attribute to see its group-level selection, true-positive and "
+        "false-positive rates.</div>",
+        unsafe_allow_html=True,
+    )
+    worst = max(
+        baseline,
+        key=lambda att: baseline[att]["summary"]["demographic_parity_difference"],
+        default=None,
+    )
     for attribute, block in baseline.items():
-        with st.container(border=True):
+        summary = block["summary"]
+        gap = summary["demographic_parity_difference"]
+        counts = ", ".join(f"{g}: {c}" for g, c in block["count"].items())
+        n = sum(block["count"].values())
+        with st.expander(
+            f"{attribute}  -  parity gap {gap:.3f}  -  {n} employees",
+            expanded=(attribute == worst),
+        ):
             st.markdown(
-                f'<div style="font-size:1rem; font-weight:600; '
-                f'color:{theme.TOKENS["text_primary"]}; margin-bottom:0.75rem;">{attribute}</div>',
+                f'<div class="small-note" style="margin-bottom:0.25rem;">'
+                f"Group sizes - {counts}</div>",
                 unsafe_allow_html=True,
             )
             c1, c2, c3 = st.columns(3, gap="medium")
-            with c1:
-                st.markdown(
-                    theme.section_label("Selection rate"), unsafe_allow_html=True
-                )
-                st.plotly_chart(
-                    _metric_bars(block, "selection_rate", attribute),
-                    width="stretch",
-                    config={"displayModeBar": False},
-                )
-            with c2:
-                st.markdown(
-                    theme.section_label("True positive rate"), unsafe_allow_html=True
-                )
-                st.plotly_chart(
-                    _metric_bars(block, "true_positive_rate", attribute),
-                    width="stretch",
-                    config={"displayModeBar": False},
-                )
-            with c3:
-                st.markdown(
-                    theme.section_label("False positive rate"), unsafe_allow_html=True
-                )
-                st.plotly_chart(
-                    _metric_bars(block, "false_positive_rate", attribute),
-                    width="stretch",
-                    config={"displayModeBar": False},
-                )
-            counts = ", ".join(f"{g}: {c}" for g, c in block["count"].items())
+            metric_specs = [
+                ("selection_rate", "Selection rate"),
+                ("true_positive_rate", "True positive rate"),
+                ("false_positive_rate", "False positive rate"),
+            ]
+            for column, (metric, title) in zip((c1, c2, c3), metric_specs):
+                with column:
+                    st.markdown(theme.section_label(title), unsafe_allow_html=True)
+                    theme.chart(_metric_bars(block, metric, attribute))
             st.markdown(
-                f'<div class="small-note">Group sizes - {counts}</div>',
+                f'<div class="small-note">Selection-rate gap {gap:.3f} &middot; '
+                f"equal-opportunity gap {summary['equal_opportunity_difference']:.3f} "
+                "&middot; equalized-odds gap "
+                f"{summary['equalized_odds_difference']:.3f}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -198,7 +201,7 @@ def render() -> None:
             fig.update_layout(height=300, margin=dict(l=8, r=8, t=8, b=8))
             fig.update_xaxes(title_text="Injected bias strength")
             fig.update_yaxes(title_text="Selection rate")
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+            theme.chart(fig)
             st.markdown(
                 '<div class="small-note">At bias strength 0 there is nothing to find. As the '
                 "unfair component grows, the gap the audit reports grows with it - which "

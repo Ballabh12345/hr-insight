@@ -1,12 +1,13 @@
-# Streamlit theme - IBM Carbon Design System (White theme)
-# Full token reference: docs/design.md
+# Streamlit theme - HR Insight "Aurora Glass" (stitch_ecoglass_nature_ui spec)
+# Base = LIGHT; the in-app Day/Night toggle injects the CSS palette each rerun.
+# These tokens seed Streamlit's native components before CSS injection loads.
 
 [theme]
 base = "light"
-primaryColor = "#0f62fe"          # Blue 60
-backgroundColor = "#ffffff"       # $background
-secondaryBackgroundColor = "#f4f4f4"  # Gray 10, $layer-01
-textColor = "#161616"             # Gray 100
+primaryColor = "#0284c7"           # Sky-600 — primary azure actions
+backgroundColor = "#faf8ff"        # Aurora canvas
+secondaryBackgroundColor = "#ffffff"
+textColor = "#131b31"              # on-surface deep navy
 font = "sans serif"
 
 [server]

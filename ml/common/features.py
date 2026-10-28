@@ -27,6 +27,18 @@ TARGET_PERFORMANCE = "PerformanceRating"
 #: Columns with a single constant value - carry no signal.
 DROP_CONSTANTS: list[str] = ["EmployeeCount", "Over18", "StandardHours"]
 
+#: Engineered features added by :func:`engineer_features`. Kept explicit so the
+#: ablation study in ``ml/train_attrition.py`` can drop them as a block.
+ENGINEERED_FEATURES: list[str] = [
+    "PromotionVelocity",
+    "IncomeRelJobLevel",
+    "PromotionGap",
+    "TenureRatio_CurrentRole",
+    "TenureRatio_Manager",
+    "TenureRatio_TotalWorking",
+    "OverTimeXDistance",
+]
+
 #: Row identifier - must never enter a model.
 DROP_ID: list[str] = ["EmployeeNumber"]
 
@@ -62,12 +74,51 @@ def add_age_band(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add derived, leakage-free features used by the attrition and talent models.
+
+    All features are functions of fields that are legitimately observable at decision
+    time; none uses the attrition label or the manager-assigned performance rating.
+    """
+    out = df.copy()
+
+    # Promotion velocity: years of service per job level (lower == faster promotion).
+    if "YearsAtCompany" in out.columns and "JobLevel" in out.columns:
+        out["PromotionVelocity"] = out["YearsAtCompany"] / out["JobLevel"].clip(lower=1)
+
+    # Income relative to the median for the employee's job level.
+    if "MonthlyIncome" in out.columns and "JobLevel" in out.columns:
+        level_median = out.groupby("JobLevel")["MonthlyIncome"].transform("median")
+        out["IncomeRelJobLevel"] = out["MonthlyIncome"] / level_median.replace(0, np.nan)
+        out["IncomeRelJobLevel"] = out["IncomeRelJobLevel"].fillna(1.0)
+
+    # Promotion gap: how long since the last promotion relative to tenure.
+    if "YearsSinceLastPromotion" in out.columns and "YearsAtCompany" in out.columns:
+        out["PromotionGap"] = out["YearsSinceLastPromotion"] / (out["YearsAtCompany"] + 1.0)
+
+    # Tenure ratios.
+    if "YearsInCurrentRole" in out.columns and "YearsAtCompany" in out.columns:
+        out["TenureRatio_CurrentRole"] = out["YearsInCurrentRole"] / (out["YearsAtCompany"] + 1.0)
+    if "YearsWithCurrManager" in out.columns and "YearsAtCompany" in out.columns:
+        out["TenureRatio_Manager"] = out["YearsWithCurrManager"] / (out["YearsAtCompany"] + 1.0)
+    if "YearsAtCompany" in out.columns and "TotalWorkingYears" in out.columns:
+        out["TenureRatio_TotalWorking"] = out["YearsAtCompany"] / (out["TotalWorkingYears"] + 1.0)
+
+    # Overtime x distance interaction.
+    if "OverTime" in out.columns and "DistanceFromHome" in out.columns:
+        overtime_flag = (out["OverTime"].astype(str).str.lower() == "yes").astype(float)
+        out["OverTimeXDistance"] = overtime_flag * out["DistanceFromHome"]
+
+    return out
+
+
 def clean(df: pd.DataFrame) -> pd.DataFrame:
     """Drop constants, identifiers, and any column not present in the source data."""
     out = df.copy()
     for col in DROP_CONSTANTS + DROP_ID:
         if col in out.columns:
             out = out.drop(columns=[col])
+    out = engineer_features(out)
     return out
 
 

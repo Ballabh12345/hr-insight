@@ -9,6 +9,49 @@
     "7": 0.23765574495989567,
     "8": 0.24625332984817552
   },
+  "cluster_comparison": {
+    "kmeans": {
+      "silhouette_by_k": {
+        "3": 0.24914097340084787,
+        "4": 0.26513836576215116,
+        "5": 0.270127623818644,
+        "6": 0.27818936264419414,
+        "7": 0.23765574495989567,
+        "8": 0.24625332984817552
+      },
+      "best_k": 6,
+      "best_silhouette": 0.27818936264419414
+    },
+    "gmm": {
+      "silhouette_by_k": {
+        "3": 0.22107711898414942,
+        "4": 0.22169307536759525,
+        "5": 0.22804526733981015,
+        "6": 0.05988181215643048,
+        "7": 0.13669717378093785,
+        "8": 0.15097642295414004
+      },
+      "best_k": 5,
+      "best_silhouette": 0.22804526733981015
+    },
+    "agglomerative": {
+      "silhouette_by_k": {
+        "3": 0.2558576696047842,
+        "4": 0.23295945506669194,
+        "5": 0.2444176085651831,
+        "6": 0.24782235377746878,
+        "7": 0.19746591697929963,
+        "8": 0.2044156445235936
+      },
+      "best_k": 3,
+      "best_silhouette": 0.2558576696047842
+    }
+  },
+  "kmeans_stability": {
+    "n_resamples": 20,
+    "ari_mean": 0.9568232963631461,
+    "ari_std": 0.07769889669127653
+  },
   "cluster_tier": {
     "4": "Low",
     "1": "Low",
@@ -65,50 +108,56 @@
     "StockOptionLevel",
     "TotalWorkingYears",
     "YearsInCurrentRole",
-    "YearsWithCurrManager"
+    "YearsWithCurrManager",
+    "IncomeRelJobLevel",
+    "PromotionGap",
+    "TenureRatio_CurrentRole",
+    "TenureRatio_Manager",
+    "TenureRatio_TotalWorking",
+    "OverTimeXDistance"
   ],
   "classifier_results": {
     "logistic_regression": {
       "best_params": {
-        "model__C": "0.01",
+        "model__C": "1.0",
         "model__class_weight": "balanced"
       },
       "cv_balanced_accuracy": {
-        "mean": 0.4270785091430215,
-        "std": 0.020222561240863846
+        "mean": 0.5869637998962188,
+        "std": 0.014223736356826713
       },
-      "test_accuracy": 0.3843537414965986,
-      "test_macro_f1": 0.38595216021741785
+      "test_accuracy": 0.5,
+      "test_macro_f1": 0.5991491491491491
     },
     "random_forest": {
       "best_params": {
         "model__class_weight": "balanced",
         "model__max_depth": "12",
-        "model__min_samples_leaf": "5",
+        "model__min_samples_leaf": "1",
         "model__n_estimators": "300"
       },
       "cv_balanced_accuracy": {
-        "mean": 0.469132343237881,
-        "std": 0.029118133058483608
+        "mean": 0.5950312853461754,
+        "std": 0.03972519617872019
       },
-      "test_accuracy": 0.4387755102040816,
-      "test_macro_f1": 0.42935187631671495
+      "test_accuracy": 0.5272108843537415,
+      "test_macro_f1": 0.5618997856884614
     },
     "gradient_boosting": {
       "best_params": {
         "model__learning_rate": "0.1",
         "model__max_depth": "2",
-        "model__n_estimators": "100"
+        "model__n_estimators": "300"
       },
       "cv_balanced_accuracy": {
-        "mean": 0.4070806713639071,
-        "std": 0.017921753318087718
+        "mean": 0.6065785407123572,
+        "std": 0.028739431697199714
       },
-      "test_accuracy": 0.42857142857142855,
-      "test_macro_f1": 0.3751781399077414
+      "test_accuracy": 0.5578231292517006,
+      "test_macro_f1": 0.586756557641078
     }
   },
-  "classifier_selected": "random_forest",
+  "classifier_selected": "gradient_boosting",
   "classifier_chance_level": 0.16666666666666666,
   "ninebox_labels": {
     "Low|Low": "Needs Attention",
@@ -143,5 +192,5 @@
     "Medium": 485
   },
   "leakage_finding": "PerformanceRating is a deterministic function of PercentSalaryHike in this dataset; with that proxy removed the rating is unpredictable (CV ROC-AUC 0.457 for rating 4 vs 3). The performance axis therefore uses an observed engagement composite rather than a predicted rating.",
-  "training_seconds": 23.71
+  "training_seconds": 34.59
 }

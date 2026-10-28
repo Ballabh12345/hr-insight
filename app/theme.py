@@ -1,10 +1,26 @@
 """
-Carbon Design System theme engine for the HR Insight Streamlit app.
+Aurora Glass — HR Insight design system (v5 · stitch_ecoglass_nature_ui spec).
 
-Implements the 11 Streamlit overrides and the shared Plotly template specified in
-``docs/design.md``.
+Executive-grade intelligence interface. Azure / sky-blue / slate palette.
+IBM Plex Sans typography. Frosted optical glass surfaces. Surgical precision.
+NO heavy drifting-orb animations — motion is limited to fast, smooth transitions
+that feel instant and responsive, not laggy.
 
-Source of truth: https://carbondesignsystem.com/  (IBM Carbon Design System, Apache-2.0)
+Design source: stitch_ecoglass_nature_ui / aurora_glass / DESIGN.md
+Reference screen: hr_insight_overview_attrition_intelligence / screen.png
+
+Two modes (day = light azure default · night = deep navy):
+  • Day  : ultra-pale azure canvas #f0f7ff, frosted white glass, azure accents
+  • Night: deep navy #0b1120, dark glass, cyan/sky accents
+
+Animation philosophy (fixing choppy / laggy issues from v4):
+  • All CSS transitions use `ease` or `ease-out`, max 200ms (card hover 160ms)
+  • NO backdrop-filter on the canvas itself (only on cards — GPU-composited layer)
+  • NO @keyframes on body background (the single biggest performance killer)
+  • NO filter:blur() on entrances — it forces a stacking context every frame
+  • Entrance: simple opacity + translateY(10px), 300ms, no filter
+  • Sidebar draw: 280ms cubic-bezier spring, no filter
+  • Orbs: one SINGLE static radial-gradient on body::before, NO animation
 """
 
 from __future__ import annotations
@@ -14,310 +30,808 @@ from typing import Any
 import plotly.graph_objects as go
 import plotly.io as pio
 
+MODES = ("day", "night")
+
 # ---------------------------------------------------------------------------
-# 1. Design tokens (Carbon White theme + Gray 100 dark shell)
+# 1. Per-mode token sheets   (Aurora Glass palette from DESIGN.md)
 # ---------------------------------------------------------------------------
 
-TOKENS: dict[str, str] = {
-    # Surfaces & layers
-    "bg": "#ffffff",
-    "surface": "#f4f4f4",
-    "surface_2": "#ffffff",
-    "surface_accent": "#e0e0e0",
+_DAY: dict[str, Any] = {
+    # Canvas
+    "canvas": "#faf8ff",
+    "canvas_gradient": "linear-gradient(160deg, #eef6ff 0%, #f4f7ff 50%, #faf8ff 100%)",
+    # Ambient orb colours — ONE static layer, no animation
+    "orb1": "rgba(14, 165, 233, 0.12)",    # sky
+    "orb2": "rgba(99, 102, 241, 0.09)",    # indigo
+    "orb3": "rgba(16, 185, 129, 0.07)",    # emerald
+    # Glass card surfaces  (from DESIGN.md Level-1 / Level-2)
+    "card":        "rgba(255, 255, 255, 0.80)",
+    "card_2":      "rgba(255, 255, 255, 0.95)",
+    "card_border": "rgba(255, 255, 255, 0.82)",
+    "card_edge":   "rgba(255, 255, 255, 0.95)",
+    "card_shadow": "0 8px 32px -8px rgba(14, 165, 233, 0.10), 0 1px 4px rgba(15, 23, 42, 0.05)",
+    "card_shadow_hover": "0 16px 40px -12px rgba(14, 165, 233, 0.16), 0 2px 8px rgba(15, 23, 42, 0.06)",
     # Borders
-    "border_subtle": "#e0e0e0",
-    "border_subtle_2": "#c6c6c6",
-    "border_strong": "#8d8d8d",
-    # Text
-    "text_primary": "#161616",
-    "text_secondary": "#525252",
-    "text_helper": "#6f6f6f",
-    "text_placeholder": "#a8a8a8",
-    "text_inverse": "#ffffff",
-    "text_link": "#0f62fe",
-    # Sidebar (Gray 100)
-    "sidebar_bg": "#161616",
-    "sidebar_text": "#f4f4f4",
-    "sidebar_text_2": "#a8a8a8",
-    "sidebar_border": "#393939",
-    "sidebar_active_bg": "#393939",
-    "sidebar_active_text": "#ffffff",
-    "sidebar_hover_bg": "#262626",
-    # Brand
-    "primary": "#0f62fe",
-    "primary_hover": "#0043ce",
-    "highlight": "#d0e2ff",
-    # Status / alert palette
-    "support_error": "#da1e28",
-    "support_success": "#24a148",
-    "support_warning": "#f1c21b",
-    "support_info": "#0043ce",
-    "caution_major": "#ff832b",
+    "border_subtle":   "rgba(14, 165, 233, 0.12)",
+    "border_subtle_2": "rgba(14, 165, 233, 0.20)",
+    "border_strong":   "rgba(2, 132, 199, 0.30)",
+    # Text (DESIGN.md: on-surface #131b31, on-surface-variant #3f4850)
+    "text_primary":     "#131b31",
+    "text_secondary":   "#3f4850",
+    "text_helper":      "#64748b",
+    "text_placeholder": "#94a3b8",
+    "text_inverse":     "#ffffff",
+    "text_link":        "#0284c7",
+    # Sidebar — navy glass (DESIGN.md: inverse-surface #283047)
+    "sidebar_bg":        "rgba(11, 19, 41, 0.94)",
+    "sidebar_bg_solid":  "#0b1329",
+    "sidebar_text":      "#eef0ff",
+    "sidebar_text_2":    "#8fa7c4",
+    "sidebar_border":    "rgba(56, 189, 248, 0.15)",
+    "sidebar_active_bg": "rgba(2, 132, 199, 0.85)",
+    "sidebar_hover_bg":  "rgba(255, 255, 255, 0.07)",
+    "pill_bg":           "rgba(255, 255, 255, 0.92)",
+    "pill_text":         "#0b1329",
+    "pill_border":       "rgba(2, 132, 199, 0.40)",
+    "pill_shadow":       "0.18",
+    # Interactive  (DESIGN.md: primary #006194 → sky-500 #0284c7)
+    "primary":       "#0284c7",
+    "primary_hover": "#0369a1",
+    "primary_text":  "#0284c7",
+    "primary_soft":  "rgba(14, 165, 233, 0.12)",
+    "highlight":     "#0284c7",
+    # Status
+    "support_error":   "#e11d48",
+    "support_success": "#059669",
+    "support_warning": "#d97706",
+    "support_info":    "#0284c7",
+    "caution_major":   "#e11d48",
+    # Chart chrome
+    "grid":        "rgba(14, 165, 233, 0.08)",
+    "tick":        "#64748b",
+    "hover_bg":    "#ffffff",
+    "hover_border": "rgba(2, 132, 199, 0.28)",
+    # KPI values — plain dark ink (no gradient fill in day mode — matches screenshot)
+    "value_grad_top":    "#0f172a",
+    "value_grad_bottom": "#0f172a",
+    "value_grad_mid":    "#0f172a",
+    "track_bg": "rgba(14, 165, 233, 0.10)",
 }
 
-#: Categorical chart palette - Carbon's curated order, apply strictly in sequence.
-CATEGORICAL: list[str] = [
-    "#6929c4",  # Purple 70
-    "#1192e8",  # Cyan 50
-    "#005d5d",  # Teal 70
-    "#9f1853",  # Magenta 70
-    "#fa4d56",  # Red 50
-    "#570408",  # Red 90
-    "#198038",  # Green 60
-    "#002d9c",  # Blue 80
-    "#ee538b",  # Magenta 50
-    "#b28600",  # Yellow 50
-    "#009d9a",  # Teal 50
-    "#012749",  # Cyan 90
-    "#8a3800",  # Orange 70
-    "#a56eff",  # Purple 50
-]
-
-#: Sequential Blue ramp (9-box heatmap).
-SEQUENTIAL: list[str] = [
-    "#edf5ff", "#d0e2ff", "#a6c8ff", "#78a9ff", "#4589ff",
-    "#0f62fe", "#0043ce", "#002d9c", "#001d6c", "#001141",
-]
-
-#: Diverging Purple <-> Teal (fairness gap; zero = parity).
-DIVERGING: list[str] = [
-    "#1c0f30", "#31135e", "#491d8b", "#6929c4", "#8a3ffc",
-    "#a56eff", "#be95ff", "#d4bbff", "#e8daff", "#f6f2ff",
-    "#d9fbfb", "#9ef0f0", "#3ddbd9", "#009d9a", "#007d79",
-    "#005d5d", "#00413e", "#002d2c", "#001a19",
-]
-
-#: Risk band -> (text colour, badge background). Text always passes WCAG AA on its own fill.
-RISK_COLORS: dict[str, tuple[str, str]] = {
-    "High": ("#da1e28", "#ffd7d9"),    # Red 60 on Red 20
-    "Medium": ("#8a3800", "#ffdecf"),  # Orange 70 on Orange 20
-    "Low": ("#198038", "#a7f0ba"),     # Green 60 on Green 20
+_NIGHT: dict[str, Any] = {
+    "canvas": "#0b1120",
+    "canvas_gradient": "linear-gradient(160deg, #0b1120 0%, #111827 50%, #0d1526 100%)",
+    "orb1": "rgba(14, 165, 233, 0.18)",
+    "orb2": "rgba(99, 102, 241, 0.14)",
+    "orb3": "rgba(16, 185, 129, 0.10)",
+    "card":        "rgba(255, 255, 255, 0.06)",
+    "card_2":      "rgba(255, 255, 255, 0.10)",
+    "card_border": "rgba(255, 255, 255, 0.11)",
+    "card_edge":   "rgba(56, 189, 248, 0.20)",
+    "card_shadow": "0 8px 32px -8px rgba(0, 0, 0, 0.50), 0 1px 4px rgba(0, 0, 0, 0.30)",
+    "card_shadow_hover": "0 16px 40px -12px rgba(14, 165, 233, 0.22), 0 2px 8px rgba(0,0,0, 0.30)",
+    "border_subtle":   "rgba(255, 255, 255, 0.08)",
+    "border_subtle_2": "rgba(255, 255, 255, 0.14)",
+    "border_strong":   "rgba(255, 255, 255, 0.22)",
+    "text_primary":     "#eef0ff",
+    "text_secondary":   "#a8b8d8",
+    "text_helper":      "#7f8fa8",
+    "text_placeholder": "#4e6080",
+    "text_inverse":     "#0b1329",
+    "text_link":        "#38bdf8",
+    "sidebar_bg":        "rgba(6, 10, 22, 0.96)",
+    "sidebar_bg_solid":  "#06080f",
+    "sidebar_text":      "#eef0ff",
+    "sidebar_text_2":    "#7f9ab8",
+    "sidebar_border":    "rgba(56, 189, 248, 0.12)",
+    "sidebar_active_bg": "rgba(2, 132, 199, 0.80)",
+    "sidebar_hover_bg":  "rgba(255, 255, 255, 0.06)",
+    "pill_bg":           "rgba(17, 24, 39, 0.95)",
+    "pill_text":         "#eef0ff",
+    "pill_border":       "rgba(56, 189, 248, 0.40)",
+    "pill_shadow":       "0.45",
+    "primary":       "#0ea5e9",
+    "primary_hover": "#0284c7",
+    "primary_text":  "#38bdf8",
+    "primary_soft":  "rgba(14, 165, 233, 0.16)",
+    "highlight":     "#38bdf8",
+    "support_error":   "#f43f5e",
+    "support_success": "#10b981",
+    "support_warning": "#f59e0b",
+    "support_info":    "#38bdf8",
+    "caution_major":   "#f43f5e",
+    "grid":        "rgba(255, 255, 255, 0.07)",
+    "tick":        "#7f8fa8",
+    "hover_bg":    "rgba(11, 19, 41, 0.90)",
+    "hover_border": "rgba(56, 189, 248, 0.35)",
+    "value_grad_top":    "#eef0ff",
+    "value_grad_bottom": "#eef0ff",
+    "value_grad_mid":    "#eef0ff",
+    "track_bg": "rgba(255, 255, 255, 0.09)",
 }
 
-#: Saturated mid-tones for chart marks (donut slices, bar series). Distinct from
-#: RISK_COLORS, which holds text-on-fill pairs for badges.
-RISK_SERIES: dict[str, str] = {
-    "High": "#fa4d56",    # Red 50
-    "Medium": "#ff832b",  # Orange 40
-    "Low": "#24a148",     # Green 50
+# Risk band -> (text colour, fill)
+_DAY_RISK_COLORS: dict[str, tuple[str, str]] = {
+    "High":   ("#e11d48", "rgba(244, 63, 94, 0.10)"),
+    "Medium": ("#d97706", "rgba(245, 158, 11, 0.12)"),
+    "Low":    ("#059669", "rgba(16, 185, 129, 0.10)"),
+}
+_NIGHT_RISK_COLORS: dict[str, tuple[str, str]] = {
+    "High":   ("#f43f5e", "rgba(244, 63, 94, 0.14)"),
+    "Medium": ("#f59e0b", "rgba(245, 158, 11, 0.12)"),
+    "Low":    ("#10b981", "rgba(16, 185, 129, 0.12)"),
+}
+_DAY_RISK_SERIES: dict[str, str] = {
+    "High": "#e11d48", "Medium": "#d97706", "Low": "#059669",
+}
+_NIGHT_RISK_SERIES: dict[str, str] = {
+    "High": "#f43f5e", "Medium": "#f59e0b", "Low": "#10b981",
+}
+_DAY_ACCENTS: dict[str, str] = {
+    "primary": "#0284c7", "high": "#e11d48", "medium": "#d97706", "low": "#059669",
+}
+_NIGHT_ACCENTS: dict[str, str] = {
+    "primary": "#0ea5e9", "high": "#f43f5e", "medium": "#f59e0b", "low": "#10b981",
 }
 
-#: Sequential Blue ramp, reversed, for a 3x3 nine-box heatmap.
-NINEBOX_SCALE: list[list[str]] = [
-    ["#e0e0e0", "#d0e2ff", "#a6c8ff"],
-    ["#d0e2ff", "#78a9ff", "#4589ff"],
-    ["#a6c8ff", "#4589ff", "#0f62fe"],
+# Categorical — sky/indigo/emerald/rose/amber palette
+_DAY_CATEGORICAL: list[str] = [
+    "#0284c7", "#4f46e5", "#059669", "#e11d48", "#d97706",
+    "#0ea5e9", "#6366f1", "#10b981", "#f43f5e", "#f59e0b",
+    "#0891b2", "#7c3aed", "#047857", "#be123c",
+]
+_NIGHT_CATEGORICAL: list[str] = [
+    "#38bdf8", "#818cf8", "#34d399", "#fb7185", "#fbbf24",
+    "#7dd3fc", "#a5b4fc", "#6ee7b7", "#fda4af", "#fde68a",
+    "#67e8f9", "#c4b5fd", "#6ee7b7", "#fca5a5",
 ]
 
+_DAY_SEQUENTIAL: list[str] = [
+    "#e0f2fe", "#bae6fd", "#7dd3fc", "#38bdf8", "#0ea5e9",
+    "#0284c7", "#0369a1", "#075985", "#0c4a6e", "#082f49",
+]
+_NIGHT_SEQUENTIAL: list[str] = [
+    "#082f49", "#0c4a6e", "#075985", "#0369a1", "#0284c7",
+    "#0ea5e9", "#38bdf8", "#7dd3fc", "#bae6fd", "#e0f2fe",
+]
+
+# 9-box: azure progressive (matching DESIGN.md chromatic scale)
+_DAY_NINEBOX: list[list[str]] = [
+    ["#e0f2fe", "#bae6fd", "#7dd3fc"],
+    ["#bae6fd", "#38bdf8", "#0ea5e9"],
+    ["#7dd3fc", "#0ea5e9", "#0284c7"],
+]
+_NIGHT_NINEBOX: list[list[str]] = [
+    ["#082f49", "#0c4a6e", "#075985"],
+    ["#0c4a6e", "#0369a1", "#0284c7"],
+    ["#075985", "#0284c7", "#0ea5e9"],
+]
+
+_DAY_DIVERGING: list[str] = [
+    "#1e1b4b", "#312e81", "#4338ca", "#4f46e5", "#6366f1",
+    "#818cf8", "#a5b4fc", "#e0e7ff",
+    "#064e3b", "#065f46", "#059669", "#10b981", "#34d399",
+    "#6ee7b7", "#a7f3d0", "#d1fae5",
+]
+_NIGHT_DIVERGING: list[str] = [
+    "#160c38", "#221640", "#331d5e", "#4338ca", "#6366f1",
+    "#a5b4fc", "#c7d2fe", "#ede9fe",
+    "#064e3b", "#065f46", "#059669", "#34d399", "#6ee7b7",
+    "#a7f3d0", "#d1fae5", "#ecfdf5",
+]
+
+MODE_SHEETS: dict[str, dict[str, Any]] = {
+    "day": {
+        "tokens": _DAY,
+        "risk_colors": _DAY_RISK_COLORS,
+        "risk_series": _DAY_RISK_SERIES,
+        "accents": _DAY_ACCENTS,
+        "categorical": _DAY_CATEGORICAL,
+        "sequential": _DAY_SEQUENTIAL,
+        "ninebox": _DAY_NINEBOX,
+        "diverging": _DAY_DIVERGING,
+    },
+    "night": {
+        "tokens": _NIGHT,
+        "risk_colors": _NIGHT_RISK_COLORS,
+        "risk_series": _NIGHT_RISK_SERIES,
+        "accents": _NIGHT_ACCENTS,
+        "categorical": _NIGHT_CATEGORICAL,
+        "sequential": _NIGHT_SEQUENTIAL,
+        "ninebox": _NIGHT_NINEBOX,
+        "diverging": _NIGHT_DIVERGING,
+    },
+}
+
+# Mutable module state
+_mode: str = "day"
+TOKENS: dict[str, str] = dict(_DAY)
+RISK_COLORS: dict[str, tuple[str, str]] = dict(_DAY_RISK_COLORS)
+RISK_SERIES: dict[str, str] = dict(_DAY_RISK_SERIES)
+ACCENT_COLORS: dict[str, str] = dict(_DAY_ACCENTS)
+CATEGORICAL: list[str] = list(_DAY_CATEGORICAL)
+SEQUENTIAL: list[str] = list(_DAY_SEQUENTIAL)
+NINEBOX_SCALE: list[list[str]] = [row[:] for row in _DAY_NINEBOX]
+DIVERGING: list[str] = list(_DAY_DIVERGING)
+
+_DEFAULT_KPI_ACCENT: str = "#0284c7"
+
+# IBM Plex Sans — matches DESIGN.md typography spec exactly
 FONT_STACK = "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif"
+MONO_STACK = "'IBM Plex Mono', 'Fira Code', monospace"
+
+
+def mode() -> str:
+    return _mode
+
+
+def set_mode(value: str) -> str:
+    global _mode, TOKENS, RISK_COLORS, RISK_SERIES, ACCENT_COLORS
+    global CATEGORICAL, SEQUENTIAL, NINEBOX_SCALE, DIVERGING, _DEFAULT_KPI_ACCENT
+    if value not in MODES:
+        raise ValueError(f"unknown mode: {value}")
+    _mode = value
+    sheet = MODE_SHEETS[value]
+    TOKENS = dict(sheet["tokens"])
+    RISK_COLORS = dict(sheet["risk_colors"])
+    RISK_SERIES = dict(sheet["risk_series"])
+    ACCENT_COLORS = dict(sheet["accents"])
+    CATEGORICAL = list(sheet["categorical"])
+    SEQUENTIAL = list(sheet["sequential"])
+    NINEBOX_SCALE = [row[:] for row in sheet["ninebox"]]
+    DIVERGING = list(sheet["diverging"])
+    _DEFAULT_KPI_ACCENT = ACCENT_COLORS["primary"]
+    return _mode
 
 
 # ---------------------------------------------------------------------------
-# 2. The 11 Streamlit overrides
+# 2. Stylesheet  (Aurora Glass v5 — performance-first, spec-faithful)
 # ---------------------------------------------------------------------------
 
-CSS = f"""
+def build_css() -> str:
+    """Build the full Aurora Glass stylesheet for the active mode.
+
+    Performance rules applied:
+    - body::before is a STATIC radial-gradient background (no animation)
+    - backdrop-filter only on glass cards (GPU-composited, efficient)
+    - entrance motion: opacity + translateY only — no filter:blur
+    - all transitions ≤ 200ms; sidebar drawer ≤ 280ms
+    - will-change used sparingly, only where GPU promotion is certain
+    """
+    t = TOKENS
+    return f"""
 <style>
-/* (6) IBM Plex Sans + (2) remove top gradient bar ---------------------- */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;600&display=swap');
+/* Aurora Glass v5 — stitch_ecoglass_nature_ui spec ========================= */
 
-html, body, [class*="css"], .stApp, button, input, textarea {{
+/* Fonts ------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+html, body, [class*="css"], .stApp, button, input, textarea, select {{
     font-family: {FONT_STACK};
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }}
-[data-testid="stDecoration"] {{ display: none !important; }}
-[data-testid="stStatusWidget"] {{ display: none !important; }}
-[data-testid="stToolbar"] {{ display: none !important; }}
+code, pre, .mono {{ font-family: {MONO_STACK}; }}
+
+/* Canvas — STATIC gradient + ambient orbs (no @keyframes) ----------------- */
+body {{
+    background: {t['canvas_gradient']};
+    min-height: 100vh;
+}}
+body::before {{
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(60rem 60rem at 90% 5%,  {t['orb1']}, transparent 70%),
+        radial-gradient(50rem 50rem at 10% 95%,  {t['orb2']}, transparent 70%),
+        radial-gradient(40rem 40rem at 55% 50%,  {t['orb3']}, transparent 70%);
+    /* NO animation — this is the single largest perf fix */
+}}
+.stApp {{ background: transparent !important; }}
+
+/* Streamlit Chrome -------------------------------------------------------- */
+[data-testid="stDecoration"]      {{ display: none !important; }}
+[data-testid="stStatusWidget"]    {{ display: none !important; }}
 [data-testid="stAppDeployButton"] {{ display: none !important; }}
-[data-testid="stHeader"] {{ background: transparent; height: 0; }}
-[data-testid="stMainBlockContainer"] {{ padding-top: 1.5rem; }}
-
-/* (3) menu / footer / deploy chrome ------------------------------------ */
-#MainMenu {{ visibility: hidden !important; }}
+[data-testid="stMainMenu"],
+[data-testid="stMainMenuButton"],
+#MainMenu {{ display: none !important; }}
 footer {{ visibility: hidden !important; }}
-[data-testid="stHeader"] {{ background: transparent; }}
+[data-testid="stHeader"] {{ background: transparent !important; }}
+[data-testid="stMainBlockContainer"] {{ padding-top: 1.25rem !important; }}
 
-/* (11) content width ---------------------------------------------------- */
+/* Sidebar Drawer — fast spring, no filter blur ---------------------------- */
+[data-testid="stSidebar"] {{
+    transition:
+        transform    280ms cubic-bezier(0.22, 1, 0.36, 1),
+        min-width    280ms cubic-bezier(0.22, 1, 0.36, 1),
+        max-width    280ms cubic-bezier(0.22, 1, 0.36, 1),
+        top          240ms ease,
+        padding      240ms ease,
+        background-color 0s,
+        border-right-color 200ms ease,
+        box-shadow   200ms ease !important;
+    will-change: min-width, max-width, transform;
+}}
+[data-testid="stSidebar"][aria-expanded="false"] {{
+    overflow: hidden !important;
+    border-right-color: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    transition:
+        transform          280ms cubic-bezier(0.22, 1, 0.36, 1),
+        min-width          280ms cubic-bezier(0.22, 1, 0.36, 1),
+        max-width          280ms cubic-bezier(0.22, 1, 0.36, 1),
+        top                240ms ease,
+        padding            240ms ease,
+        background-color   160ms ease 200ms,
+        border-right-color 140ms ease 180ms,
+        box-shadow         180ms ease 100ms !important;
+}}
+/* Content opacity only — NO blur filter (too expensive during drag) */
+[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
+    transition: opacity 200ms ease 40ms, transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}}
+[data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarContent"],
+[data-testid="stSidebar"][aria-expanded="false"] [data-testid="stSidebarUserContent"] {{
+    opacity: 0;
+    transform: translateX(-16px);
+}}
+[data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarContent"],
+[data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarUserContent"] {{
+    opacity: 1;
+    transform: translateX(0);
+}}
+
+/* Collapse / expand controls */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebar"] [data-testid="stBaseButton-headerNoPadding"] {{
+    visibility: visible !important;
+    color: {t['sidebar_text_2']} !important;
+    border-radius: 8px !important;
+    transition: background 150ms ease, color 150ms ease !important;
+}}
+[data-testid="stSidebar"] [data-testid="stBaseButton-headerNoPadding"]:hover {{
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: {t['sidebar_text']} !important;
+}}
+
+/* Mobile expand pill */
+[data-testid="stExpandSidebarButton"] {{
+    background-color: {t['pill_bg']} !important;
+    color: {t['pill_text']} !important;
+    border: 1px solid {t['pill_border']} !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, {t['pill_shadow']}) !important;
+    padding: 0.4rem 0.875rem 0.4rem 0.65rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}}
+[data-testid="stExpandSidebarButton"]::after {{
+    content: "Sidebar";
+    margin-left: 0.45rem;
+    white-space: nowrap;
+}}
+[data-testid="stExpandSidebarButton"]:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(2, 132, 199, 0.22) !important;
+}}
+
+/* Appearance chips */
+[data-testid="stSidebar"] .stButtonGroup [role="radio"] {{
+    background: transparent !important;
+    color: {t['sidebar_text_2']} !important;
+    border: 1px solid {t['sidebar_border']} !important;
+    border-radius: 8px !important;
+    transition: background 150ms ease, color 150ms ease !important;
+}}
+[data-testid="stSidebar"] .stButtonGroup [role="radio"][aria-checked="true"] {{
+    background: rgba(2, 132, 199, 0.70) !important;
+    color: #ffffff !important;
+    border-color: rgba(56, 189, 248, 0.50) !important;
+}}
+
+/* Layout ------------------------------------------------------------------ */
 .block-container {{
     max-width: 1440px;
-    padding: 2rem 2rem 4rem 2rem;
+    padding: 1.25rem 2rem 4rem 2rem;
 }}
 @media (max-width: 672px) {{
-    .block-container {{ padding: 1rem 1rem 2rem 1rem; }}
+    .block-container {{ padding: 0.75rem 1rem 2rem 1rem; }}
 }}
 
-/* (1) Dark sidebar - Gray 100 theme ------------------------------------ */
+/* Glass Sidebar  (DESIGN.md Level-3 navy glass) --------------------------- */
 [data-testid="stSidebar"] {{
-    background-color: {TOKENS['sidebar_bg']};
-    border-right: 1px solid {TOKENS['sidebar_border']};
+    background-color: {t['sidebar_bg']} !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.3);
+    border-right: 1px solid {t['sidebar_border']} !important;
+    box-shadow: 2px 0 24px rgba(0, 0, 0, 0.18) !important;
 }}
-[data-testid="stSidebar"] * {{ color: {TOKENS['sidebar_text']}; }}
+[data-testid="stSidebar"] * {{ color: {t['sidebar_text']}; }}
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
 [data-testid="stSidebar"] label,
-[data-testid="stSidebar"] span {{ color: {TOKENS['sidebar_text']}; }}
-[data-testid="stSidebar"] hr {{ border-color: {TOKENS['sidebar_border']}; }}
-[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {{
-    color: {TOKENS['sidebar_text_2']} !important;
-}}
+[data-testid="stSidebar"] span {{ color: {t['sidebar_text']}; }}
+[data-testid="stSidebar"] hr {{ border-color: {t['sidebar_border']}; }}
+
+/* Nav radio items */
 [data-testid="stSidebar"] [role="radiogroup"] label {{
-    padding: 0.45rem 1rem;
-    border-radius: 0;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
     border-left: 3px solid transparent;
     cursor: pointer;
+    display: block;
+    margin: 0.1rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 150ms ease, border-left-color 150ms ease;
 }}
-/* Streamlit renders the radio dot as a styled div (the input itself is already
-   visually hidden), so the dot wrapper has to be hidden rather than the input. */
 [data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div:first-child {{
     display: none !important;
 }}
-[data-testid="stSidebar"] [data-testid="stRadioOption"] > div {{
-    align-items: center;
-}}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div {{ align-items: center; }}
 [data-testid="stSidebar"] [role="radiogroup"] input[type="radio"],
 [data-testid="stSidebar"] [role="radiogroup"] input[type="checkbox"] {{
-    display: none !important;
+    position: absolute; opacity: 0; width: 1px; height: 1px;
 }}
 [data-testid="stSidebar"] [role="radiogroup"] > div {{ gap: 0 !important; }}
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {{
-    background-color: {TOKENS['sidebar_hover_bg']};
+    background-color: {t['sidebar_hover_bg']};
 }}
-[data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"],
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {{
-    background-color: {TOKENS['sidebar_active_bg']};
-    border-left-color: {TOKENS['primary']};
-    color: {TOKENS['sidebar_active_text']};
+    background-color: {t['sidebar_active_bg']};
+    border-left-color: rgba(56, 189, 248, 0.70);
+    color: #ffffff;
+}}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:focus-visible) {{
+    outline: 2px solid rgba(56, 189, 248, 0.60);
+    outline-offset: -2px;
 }}
 
-/* (4) Cards ------------------------------------------------------------- */
+/* Glass Cards  (DESIGN.md Level-1 / Level-2) ------------------------------ */
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"],
 [data-testid="stVerticalBlockBorderWrapper"] > div {{
-    background-color: {TOKENS['surface_2']};
-    border: 1px solid {TOKENS['border_subtle']};
-    border-radius: 8px;
+    background: {t['card']};
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid {t['card_border']};
+    border-radius: 12px;
     padding: 1rem;
-    box-shadow: 0 1px 2px rgba(22,22,22,0.06);
+    box-shadow: {t['card_shadow']}, inset 0 1px 0 {t['card_edge']};
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }}
-[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]) {{
-    padding: 0;
-}}
-div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerticalBlock"] {{
-    padding: 1rem;
+[data-testid="stLayoutWrapper"] > [data-testid="stVerticalBlock"]:hover,
+[data-testid="stVerticalBlockBorderWrapper"]:hover > div {{
+    transform: translateY(-2px);
+    box-shadow: {t['card_shadow_hover']}, inset 0 1px 0 {t['card_edge']};
+    border-color: rgba(14, 165, 233, 0.22);
 }}
 
-/* (7) Buttons ----------------------------------------------------------- */
+/* Buttons ----------------------------------------------------------------- */
 .stButton > button,
 .stDownloadButton > button,
 .stFormSubmitButton > button {{
-    background-color: {TOKENS['primary']};
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
+    background-color: {t['card_2']};
+    color: {t['text_primary']};
+    border: 1px solid {t['border_strong']};
+    border-radius: 8px;
     height: 2.5rem;
-    font-weight: 400;
+    font-weight: 600;
     font-size: 0.875rem;
-    box-shadow: none;
-    transition: background-color 120ms ease;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    transition: background-color 150ms ease, border-color 150ms ease,
+                transform 150ms ease, box-shadow 150ms ease;
 }}
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 .stFormSubmitButton > button:hover {{
-    background-color: {TOKENS['primary_hover']};
-    color: #ffffff;
-    border: none;
+    background-color: {t['primary_soft']};
+    border-color: {t['primary']};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.18);
 }}
 .stButton > button:focus,
-.stDownloadButton > button:focus {{ box-shadow: 0 0 0 2px {TOKENS['primary']}; }}
+.stDownloadButton > button:focus {{
+    box-shadow: 0 0 0 3px {t['primary_soft']};
+}}
+button[kind="primary"],
+.stFormSubmitButton > button[kind="primary"] {{
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35), inset 0 1px 0 rgba(255,255,255,0.22);
+}}
+button[kind="primary"]:hover {{
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+    transform: translateY(-1px);
+}}
+button[kind="tertiary"],
+.stFormSubmitButton > button[kind="tertiary"] {{
+    background-color: transparent;
+    color: {t['support_error']};
+    border: 1px solid {t['support_error']};
+    box-shadow: none;
+}}
+button[kind="tertiary"]:hover {{
+    background-color: rgba(225, 29, 72, 0.06);
+    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.15);
+}}
+button[kind="tertiary"]:focus {{ box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.20); }}
 
-/* (8) Tabs -------------------------------------------------------------- */
-.stTabs [data-baseweb="tab-list"] {{ gap: 1.5rem; border-bottom: 1px solid {TOKENS['border_subtle']}; }}
+/* Tabs -------------------------------------------------------------------- */
+.stTabs [data-baseweb="tab-list"] {{
+    gap: 1.5rem;
+    border-bottom: 1px solid {t['border_subtle']};
+}}
 .stTabs [data-baseweb="tab"] {{
     height: 2.75rem;
     padding: 0 0 0.75rem 0;
     font-size: 0.875rem;
-    color: {TOKENS['text_secondary']};
+    font-weight: 500;
+    color: {t['text_secondary']};
+    transition: color 150ms ease;
 }}
-.stTabs [aria-selected="true"] {{
-    color: {TOKENS['text_primary']};
-    font-weight: 600;
-}}
-.stTabs [data-baseweb="tab-highlight"] {{ background-color: {TOKENS['primary']}; }}
-.stTabs [data-baseweb="tab-border"] {{ background-color: {TOKENS['primary']}; }}
+.stTabs [aria-selected="true"] {{ color: {t['text_primary']}; font-weight: 600; }}
+.stTabs [data-baseweb="tab-highlight"] {{ background-color: {t['primary']}; height: 2px; }}
+.stTabs [data-baseweb="tab-border"]    {{ background-color: {t['primary']}; }}
 
-/* (9) Data tables ------------------------------------------------------- */
-[data-testid="stDataFrame"] {{ border: 1px solid {TOKENS['border_subtle']}; border-radius: 8px; }}
+/* Data Tables ------------------------------------------------------------- */
+[data-testid="stDataFrame"] {{
+    border: 1px solid {t['card_border']};
+    border-radius: 12px;
+    box-shadow: {t['card_shadow']};
+    overflow: hidden;
+}}
 [data-testid="stDataFrame"] * {{ font-family: {FONT_STACK}; font-size: 0.875rem; }}
 
-/* Inputs --------------------------------------------------------------- */
+/* Inputs ------------------------------------------------------------------ */
 [data-testid="stTextInput"] input,
 [data-testid="stNumberInput"] input,
 [data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
-    border-radius: 4px !important;
-    border-color: {TOKENS['border_subtle_2']} !important;
+    border-radius: 8px !important;
+    border-color: {t['border_subtle_2']} !important;
+    background-color: {t['card_2']};
+    font-family: {FONT_STACK};
+    transition: border-color 150ms ease, box-shadow 150ms ease !important;
 }}
 input:focus, textarea:focus {{
-    border-color: {TOKENS['primary']} !important;
-    box-shadow: 0 0 0 1px {TOKENS['primary']} !important;
+    border-color: {t['primary']} !important;
+    box-shadow: 0 0 0 3px {t['primary_soft']} !important;
+}}
+label, .stMarkdown p {{ color: {t['text_secondary']}; font-size: 0.875rem; }}
+
+/* Inline Notifications ---------------------------------------------------- */
+[data-testid="stAlert"] > div {{
+    background: {t['card']} !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid {t['card_border']} !important;
+    border-left: 3px solid {t['primary']} !important;
+    border-radius: 0 10px 10px 0 !important;
+    color: {t['text_primary']};
 }}
 
-/* App header ------------------------------------------------------------ */
+/* Chat -------------------------------------------------------------------- */
+[data-testid="stChatMessage"] {{
+    background: {t['card']};
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid {t['card_border']};
+    border-radius: 12px;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 0.5rem;
+}}
+[data-testid="stChatMessage"] [data-testid="stAvatar"] {{ display: none; }}
+[data-testid="stBottom"] > div {{ background: transparent; }}
+[data-testid="stChatInput"] {{ border-radius: 12px !important; }}
+[data-testid="stChatInput"] > div {{
+    background: {t['card_2']} !important;
+    border: 1px solid {t['card_border']} !important;
+    border-radius: 12px;
+    box-shadow: {t['card_shadow']};
+}}
+
+/* Expanders --------------------------------------------------------------- */
+[data-testid="stExpander"] {{
+    background: {t['card']};
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid {t['card_border']} !important;
+    border-radius: 12px !important;
+    box-shadow: {t['card_shadow']};
+    overflow: visible;
+    transition: box-shadow 160ms ease;
+}}
+[data-testid="stExpander"]:hover {{ box-shadow: {t['card_shadow_hover']}; }}
+[data-testid="stExpander"] summary {{
+    color: {t['text_primary']} !important;
+    font-weight: 600;
+    font-size: 0.9375rem;
+}}
+[data-testid="stExpander"] details {{ background: transparent !important; border: none !important; }}
+
+/* Page Title / Labels ----------------------------------------------------- */
 .app-title {{
     font-size: 1.75rem;
     font-weight: 600;
-    color: {TOKENS['text_primary']};
-    line-height: 1.2;
-    margin-bottom: 0.25rem;
+    letter-spacing: -0.015em;
+    color: {t['text_primary']};
+    line-height: 1.18;
+    margin-bottom: 0.3rem;
 }}
 .app-subtitle {{
-    font-size: 0.875rem;
-    color: {TOKENS['text_helper']};
-    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: {t['text_helper']};
+    margin-bottom: 1.4rem;
+    font-weight: 400;
+    line-height: 1.55;
 }}
 .section-label {{
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: {TOKENS['text_helper']};
-    margin-bottom: 0.5rem;
+    color: {t['text_helper']};
+    margin: 0.75rem 0 0.5rem 0;
 }}
 
-/* KPI cards ------------------------------------------------------------- */
+/* KPI Cards --------------------------------------------------------------- */
 .kpi-card {{
-    background: {TOKENS['surface_2']};
-    border: 1px solid {TOKENS['border_subtle']};
-    border-radius: 8px;
-    padding: 1.25rem;
-    box-shadow: 0 1px 2px rgba(22,22,22,0.06);
+    background: {t['card']};
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid {t['card_border']};
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: {t['card_shadow']}, inset 0 1px 0 {t['card_edge']};
     height: 100%;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    position: relative;
+    overflow: hidden;
+}}
+.kpi-card:hover {{
+    transform: translateY(-2px);
+    box-shadow: {t['card_shadow_hover']}, inset 0 1px 0 {t['card_edge']};
 }}
 .kpi-label {{
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: {TOKENS['text_helper']};
-    margin-bottom: 0.5rem;
+    color: {t['text_helper']};
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}}
+.kpi-dot {{
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}}
+/* Pulse is FAST and GPU-composited (only opacity + transform) */
+.kpi-dot.pulse {{
+    animation: kpiPulse 2s ease-in-out infinite;
+}}
+@keyframes kpiPulse {{
+    0%, 100% {{ opacity: 1;    transform: scale(1);    }}
+    50%       {{ opacity: 0.50; transform: scale(1.20); }}
 }}
 .kpi-value {{
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: {TOKENS['text_primary']};
-    line-height: 1.1;
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: {t['text_primary']};
+    line-height: 1.08;
+    font-variant-numeric: tabular-nums;
 }}
-.kpi-delta {{ font-size: 0.75rem; margin-top: 0.375rem; color: {TOKENS['text_helper']}; }}
-.kpi-delta.good {{ color: {TOKENS['support_success']}; }}
-.kpi-delta.bad  {{ color: {TOKENS['support_error']}; }}
+.kpi-delta {{ font-size: 0.75rem; margin-top: 0.4rem; color: {t['text_helper']}; }}
+.kpi-delta.good {{ color: {t['support_success']}; font-weight: 600; }}
+.kpi-delta.bad  {{ color: {t['support_error']};   font-weight: 600; }}
 
-/* Badges ---------------------------------------------------------------- */
+/* Badges ------------------------------------------------------------------ */
 .badge {{
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.7rem;
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 600;
+    letter-spacing: 0.03em;
     line-height: 1.2;
+    border: 1px solid {t['card_border']};
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}}
+.badge::before {{
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.9;
+    flex-shrink: 0;
 }}
 
-/* Helper text ----------------------------------------------------------- */
-.small-note {{ font-size: 0.75rem; color: {TOKENS['text_helper']}; }}
+/* Risk Meter -------------------------------------------------------------- */
+.risk-meter {{ margin: 0.5rem 0.25rem 0.35rem 0.25rem; }}
+.risk-meter .track {{
+    position: relative;
+    height: 10px;
+    border-radius: 6px;
+    background: {t['track_bg']};
+    border: 1px solid {t['border_subtle_2']};
+    overflow: hidden;
+}}
+.risk-meter .fill {{
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 6px;
+    /* Simple grow — opacity+width, no blur filter */
+    animation: meterGrow 600ms ease-out both;
+}}
+@keyframes meterGrow {{ from {{ width: 0; opacity: 0.6; }} to {{ opacity: 1; }} }}
+.risk-meter .ticks {{
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+    color: {t['text_helper']};
+    margin-top: 0.3rem;
+    font-variant-numeric: tabular-nums;
+}}
+
+/* Small note -------------------------------------------------------------- */
+.small-note {{ font-size: 0.75rem; color: {t['text_helper']}; line-height: 1.5; }}
+
+/* Staggered Entrance — opacity + translate only, no filter:blur ----------- */
+[data-testid="stMain"] [data-testid="stElementContainer"] {{
+    animation: rise 300ms ease-out both;
+}}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(1)  {{ animation-delay: 0ms;   }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(2)  {{ animation-delay: 30ms;  }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(3)  {{ animation-delay: 60ms;  }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(4)  {{ animation-delay: 90ms;  }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(5)  {{ animation-delay: 115ms; }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(6)  {{ animation-delay: 140ms; }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(7)  {{ animation-delay: 165ms; }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(8)  {{ animation-delay: 188ms; }}
+.stMainBlockContainer .stVerticalBlock > .stElementContainer:nth-child(n+9) {{ animation-delay: 210ms; }}
+/* ONLY opacity + translateY — NO filter:blur — this is the key perf fix */
+@keyframes rise {{
+    from {{ opacity: 0; transform: translateY(10px); }}
+    to   {{ opacity: 1; transform: translateY(0);    }}
+}}
+
+/* prefers-reduced-motion -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {{
+    [data-testid="stMain"] [data-testid="stElementContainer"] {{ animation: none; }}
+    .risk-meter .fill  {{ animation: none; }}
+    .kpi-dot.pulse     {{ animation: none; }}
+    * {{ transition-duration: 1ms !important; }}
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"][aria-expanded="false"],
+    [data-testid="stSidebar"][aria-expanded="true"],
+    [data-testid="stSidebar"] [data-testid="stSidebarContent"],
+    [data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
+        transition-duration: 1ms !important;
+        transition-delay: 0ms !important;
+    }}
+}}
 </style>
 """
 
@@ -326,22 +840,22 @@ input:focus, textarea:focus {{
 # 3. Plotly template
 # ---------------------------------------------------------------------------
 
-
 def carbon_plotly_template() -> go.layout.Template:
-    """Build the shared Plotly template from the Carbon tokens."""
+    """Build the Aurora Glass Plotly template."""
+    t = TOKENS
     axis = dict(
         showgrid=True,
-        gridcolor=TOKENS["border_subtle"],
+        gridcolor=t["grid"],
         gridwidth=1,
         zeroline=False,
         showline=False,
         ticks="",
-        tickfont=dict(family=FONT_STACK, size=12, color=TOKENS["text_helper"]),
-        title=dict(font=dict(family=FONT_STACK, size=12, color=TOKENS["text_helper"])),
+        tickfont=dict(family=FONT_STACK, size=12, color=t["tick"]),
+        title=dict(font=dict(family=FONT_STACK, size=12, color=t["tick"])),
     )
     return go.layout.Template(
         layout=go.Layout(
-            font=dict(family=FONT_STACK, size=13, color=TOKENS["text_primary"]),
+            font=dict(family=FONT_STACK, size=13, color=t["text_primary"]),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             colorway=CATEGORICAL,
@@ -355,45 +869,71 @@ def carbon_plotly_template() -> go.layout.Template:
                 xanchor="left",
                 x=0,
                 bgcolor="rgba(0,0,0,0)",
-                font=dict(family=FONT_STACK, size=12, color=TOKENS["text_secondary"]),
+                font=dict(family=FONT_STACK, size=12, color=t["text_secondary"]),
             ),
             hoverlabel=dict(
-                bgcolor="#ffffff",
-                bordercolor=TOKENS["border_subtle_2"],
-                font=dict(family=FONT_STACK, size=12, color=TOKENS["text_primary"]),
+                bgcolor=t["hover_bg"],
+                bordercolor=t["hover_border"],
+                font=dict(family=FONT_STACK, size=12, color=t["text_primary"]),
             ),
-            bargap=0.2,
+            bargap=0.35,
         )
     )
 
 
 def register_plotly_template() -> None:
-    """Register the Carbon template globally with Plotly."""
-    pio.templates["carbon"] = carbon_plotly_template()
-    pio.templates.default = "carbon"
+    pio.templates["hr_insight"] = carbon_plotly_template()
+    pio.templates.default = "hr_insight"
 
 
 # ---------------------------------------------------------------------------
-# 4. Component helpers
+# 4. Injection + component helpers
 # ---------------------------------------------------------------------------
-
 
 def inject_theme() -> None:
-    """Inject the Carbon stylesheet into the running Streamlit app."""
+    import streamlit as st
+    st.markdown(build_css(), unsafe_allow_html=True)
+
+
+def chart(fig, width="stretch", config=None, height=None, **kwargs):
+    """Render a Plotly chart in the Aurora Glass palette."""
     import streamlit as st
 
-    st.markdown(CSS, unsafe_allow_html=True)
+    t = TOKENS
+    fig.update_layout(
+        template=carbon_plotly_template(),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"color": t["text_primary"]},
+    )
+    fig.update_xaxes(automargin=True)
+    fig.update_yaxes(automargin=True)
+    if height is not None:
+        fig.update_layout(height=height)
+    if config is None:
+        config = {"displayModeBar": False}
+    selectable_kwargs = {
+        k: kwargs.pop(k) for k in ("key", "on_select", "selection_mode") if k in kwargs
+    }
+    return st.plotly_chart(fig, width=width, config=config, theme=None, **selectable_kwargs, **kwargs)
 
 
-def kpi_card(label: str, value: str, delta: str = "", delta_tone: str = "") -> str:
-    """Render a Carbon-style KPI card as HTML."""
+def kpi_card(label: str, value: str, delta: str = "", delta_tone: str = "", accent: str = "") -> str:
+    """Render an Aurora Glass KPI card."""
+    top = ACCENT_COLORS.get(accent, accent) if accent else _DEFAULT_KPI_ACCENT
+    dot = ""
+    if top != _DEFAULT_KPI_ACCENT:
+        pulse = " pulse" if accent in ("high",) else ""
+        dot = f'<span class="kpi-dot{pulse}" style="color:{top};background:{top};"></span>'
     tone = ""
     if delta_tone in {"good", "bad"}:
         tone = f" {delta_tone}"
     delta_html = f'<div class="kpi-delta{tone}">{delta}</div>' if delta else ""
+    # Thin accent top-border (like DESIGN.md specular edge)
+    border_style = f' style="border-top:3px solid {top};"' if top else ""
     return (
-        '<div class="kpi-card">'
-        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-card"{border_style}>'
+        f'<div class="kpi-label">{dot}{label}</div>'
         f'<div class="kpi-value">{value}</div>'
         f"{delta_html}"
         "</div>"
@@ -401,7 +941,7 @@ def kpi_card(label: str, value: str, delta: str = "", delta_tone: str = "") -> s
 
 
 def kpi_row(cards: list[dict[str, Any]]) -> str:
-    """Render a row of KPI cards. Each card: {label, value, delta, delta_tone}."""
+    """Render a flex row of Aurora Glass KPI cards."""
     items = "".join(
         '<div style="flex:1 1 0; min-width:0;">'
         + kpi_card(
@@ -409,6 +949,7 @@ def kpi_row(cards: list[dict[str, Any]]) -> str:
             c.get("value", ""),
             c.get("delta", ""),
             c.get("delta_tone", ""),
+            c.get("accent", ""),
         )
         + "</div>"
         for c in cards
@@ -421,31 +962,47 @@ def kpi_row(cards: list[dict[str, Any]]) -> str:
 
 
 def risk_badge(band: str) -> str:
-    """Render an attrition risk band as a Carbon badge."""
-    text_color, bg_color = RISK_COLORS.get(band, (TOKENS["text_secondary"], TOKENS["surface"]))
+    """Render a risk band as a glass pill."""
+    text_color, bg_color = RISK_COLORS.get(band, (TOKENS["text_secondary"], TOKENS["card"]))
     return (
         f'<span class="badge" style="color:{text_color}; background:{bg_color};">{band}</span>'
     )
 
 
 def risk_color(band: str) -> str:
-    """Return the accent colour for a risk band."""
-    return RISK_COLORS.get(band, (TOKENS["text_secondary"], TOKENS["surface"]))[0]
+    return RISK_COLORS.get(band, (TOKENS["text_secondary"], TOKENS["card"]))[0]
+
+
+def risk_meter(probability: float, band: str) -> str:
+    """Render the attrition risk as a CSS Aurora Glass meter bar."""
+    pct = float(probability) * 100.0
+    color = risk_color(band)
+    zones = max(0.0, min(100.0, pct))
+    badge = risk_badge(band)
+    return (
+        f'<div class="risk-meter">'
+        f'<div class="track"><div class="fill" style="width:{zones:.0f}%; background:{color};"></div></div>'
+        f'<div class="ticks"><span>0</span><span>25</span><span>55</span><span>100</span></div>'
+        f"</div>"
+        f'<div style="display:flex; align-items:center; gap:0.75rem; margin-top:0.6rem;">'
+        f'<span style="font-size:2rem; font-weight:700; letter-spacing:-0.02em; '
+        f'color:{TOKENS["text_primary"]}; font-variant-numeric:tabular-nums;">'
+        f"{pct:.0f}%</span>{badge}"
+        f"</div>"
+        f'<div class="small-note" style="margin-top:0.5rem;">Bands: &lt;25% &middot; 25–55% &middot; &gt;55%</div>'
+    )
 
 
 def section_label(text: str) -> str:
-    """Render an uppercase section label."""
     return f'<div class="section-label">{text}</div>'
 
 
 def app_header(title: str, subtitle: str = "") -> str:
-    """Render the page title block."""
     sub = f'<div class="app-subtitle">{subtitle}</div>' if subtitle else ""
     return f'<div class="app-title">{title}</div>{sub}'
 
 
 def heat_color(value: float, vmin: float, vmax: float) -> str:
-    """Map a value onto the Carbon sequential Blue ramp."""
     if vmax <= vmin:
         return SEQUENTIAL[0]
     t = (value - vmin) / (vmax - vmin)
@@ -453,11 +1010,7 @@ def heat_color(value: float, vmin: float, vmax: float) -> str:
 
 
 def heat_text_color(value: float, vmin: float, vmax: float) -> str:
-    """White on the dark half of the ramp, near-black on the light half."""
-    if vmax <= vmin:
-        return TOKENS["text_primary"]
-    t = (value - vmin) / (vmax - vmin)
-    return "#ffffff" if t > 0.5 else TOKENS["text_primary"]
+    return TOKENS["text_primary"] if _mode == "day" else "#eef0ff"
 
 
 def matrix_html(
@@ -469,47 +1022,46 @@ def matrix_html(
     row_caption: str = "",
     col_caption: str = "",
 ) -> str:
-    """Render a 3x3 matrix as Carbon tiles.
-
-    ``cells`` maps ``(row, col)`` to ``(label, detail, value)``, where ``value`` drives
-    the fill colour. Building the grid from HTML rather than a Plotly heatmap gives
-    full control over the tile typography and per-cell text contrast.
-    """
+    """Render a 3x3 talent matrix as Aurora Glass tiles (matching DESIGN.md 9-box spec)."""
+    t = TOKENS
     out: list[str] = [
         '<div style="display:grid; grid-template-columns: 150px repeat(%d, 1fr); '
-        'gap:3px; margin-top:0.5rem;">' % len(cols)
+        'gap:6px; margin-top:0.5rem;">' % len(cols)
     ]
     out.append(
         f'<div style="display:flex;align-items:flex-end;justify-content:flex-end;'
-        f'padding:0 0.5rem 0.35rem 0;font-size:0.6875rem;color:{TOKENS["text_helper"]};">'
+        f'padding:0 0.5rem 0.35rem 0;font-size:0.6875rem;font-weight:600;letter-spacing:0.06em;'
+        f'text-transform:uppercase;color:{t["text_helper"]};">'
         f"{col_caption}</div>"
     )
     for col in cols:
         out.append(
-            f'<div style="font-size:0.6875rem;color:{TOKENS["text_helper"]};'
+            f'<div style="font-size:0.6875rem;font-weight:600;letter-spacing:0.06em;'
+            f'text-transform:uppercase;color:{t["text_helper"]};'
             f'padding:0 0.5rem 0.35rem 0;text-align:center;">{col}</div>'
         )
     for row in rows:
         out.append(
             f'<div style="display:flex;align-items:center;justify-content:flex-end;'
-            f'padding-right:0.75rem;font-size:0.75rem;color:{TOKENS["text_helper"]};'
-            f'height:86px;">{row}</div>'
+            f'padding-right:0.75rem;font-size:0.6875rem;font-weight:600;letter-spacing:0.06em;'
+            f'text-transform:uppercase;color:{t["text_helper"]};height:88px;">{row}</div>'
         )
         for col in cols:
             label, detail, value = cells.get((row, col), ("-", "", vmin))
             bg = heat_color(value, vmin, vmax)
             fg = heat_text_color(value, vmin, vmax)
             out.append(
-                f'<div style="background:{bg};color:{fg};height:86px;'
-                f'border-radius:4px;padding:0.65rem 0.75rem;'
-                f'display:flex;flex-direction:column;justify-content:center;gap:0.2rem;">'
+                f'<div style="background:{bg};color:{fg};height:88px;'
+                f'border-radius:8px;padding:0.65rem 0.75rem;'
+                f'box-shadow:0 2px 8px rgba(14,165,233,0.08);'
+                f'border:1px solid rgba(255,255,255,0.60);'
+                f'display:flex;flex-direction:column;justify-content:center;gap:0.2rem;'
+                f'transition:transform 160ms ease, box-shadow 160ms ease;">'
                 f'<div style="font-size:0.8125rem;font-weight:600;line-height:1.25;">{label}</div>'
-                f'<div style="font-size:0.6875rem;opacity:0.85;">{detail}</div>'
+                f'<div style="font-size:0.6875rem;opacity:0.80;">{detail}</div>'
                 f"</div>"
             )
     out.append("</div>")
     if row_caption:
-        out.append(
-            f'<div class="small-note" style="margin-top:0.6rem;">{row_caption}</div>'
-        )
+        out.append(f'<div class="small-note" style="margin-top:0.6rem;">{row_caption}</div>')
     return "".join(out)

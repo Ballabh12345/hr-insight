@@ -40,13 +40,13 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import train_test_split
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ml.common import fairness as FAIR  # noqa: E402
 from ml.common import features as F  # noqa: E402
-from ml.common import io, metrics  # noqa: E402
+from ml.common import io  # noqa: E402
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.20
@@ -60,11 +60,15 @@ def _split(raw: pd.DataFrame):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, stratify=y, random_state=RANDOM_STATE
     )
+    cleaned["GenderXAgeBand"] = cleaned["Gender"].astype(str) + " / " + cleaned["AgeBand"].astype(str)
+    cleaned["GenderXDepartment"] = cleaned["Gender"].astype(str) + " / " + cleaned["Department"].astype(str)
     sensitive = {
         "Gender": cleaned["Gender"],
         "AgeBand": cleaned["AgeBand"],
         "MaritalStatus": cleaned["MaritalStatus"],
         "Department": cleaned["Department"],
+        "GenderXAgeBand": cleaned["GenderXAgeBand"],
+        "GenderXDepartment": cleaned["GenderXDepartment"],
     }
     return cleaned, X, y, X_train, X_test, y_train, y_test, sensitive
 
@@ -72,14 +76,39 @@ def _split(raw: pd.DataFrame):
 def study_a_baseline_audit(X_test, y_test, predictor, sensitive) -> dict:
     """Audit the production model across every protected attribute."""
     y_pred = predictor.predict(X_test)
-    report = FAIR.audit(y_test, y_pred, {k: v.loc[X_test.index] for k, v in sensitive.items()})
+    sf = {k: v.loc[X_test.index] for k, v in sensitive.items()}
+    report = FAIR.audit(y_test, y_pred, sf)
+
+    # Bootstrap CIs on every gap + per-group calibration.
+    bootstrap: dict[str, tuple[float, float]] = {}
+    calibration: dict[str, dict[str, dict[str, float]]] = {}
+    for attr in report["groups"]:
+        if attr not in sf:
+            continue
+        bootstrap[attr] = FAIR.bootstrap_gap_ci(
+            y_test, y_pred, sf[attr], seed=RANDOM_STATE
+        )
+    # Calibration uses the model's calibrated probabilities where available.
+    try:
+        proba = predictor.predict_proba(X_test)[:, 1]
+    except Exception:
+        proba = None
+    if proba is not None:
+        for attr in report["groups"]:
+            if attr not in sf:
+                continue
+            calibration[attr] = FAIR.calibration_by_group(y_test, proba, sf[attr])
+
+    report["bootstrap_gap_ci"] = {k: list(v) for k, v in bootstrap.items()}
+    report["calibration_by_group"] = calibration
 
     print("[studyA] disparate impact (selection rate) by attribute:")
     for attr, block in report["groups"].items():
         rates = block["selection_rate"]
         spread = max(rates.values()) - min(rates.values())
+        ci = report["bootstrap_gap_ci"].get(attr, [float("nan"), float("nan")])
         detail = ", ".join(f"{g}={r:.3f}" for g, r in rates.items())
-        print(f"           {attr:15s} gap={spread:.3f}  ({detail})")
+        print(f"           {attr:15s} gap={spread:.3f}  CI=[{ci[0]:.3f},{ci[1]:.3f}]  ({detail})")
     return report
 
 
@@ -135,8 +164,9 @@ def study_b_mitigation(X_train, y_train, X_test, y_test, sensitive) -> dict:
 
 def study_b2_risk_regression(cleaned, X_train, y_train, X_test, y_test, sensitive) -> dict:
     """Group-level error analysis with a regression formulation of the risk score."""
+    model_frame = cleaned.drop(columns=["GenderXAgeBand", "GenderXDepartment"], errors="ignore")
     reg = F.build_pipeline(
-        cleaned, GradientBoostingRegressor(random_state=RANDOM_STATE)
+        model_frame, GradientBoostingRegressor(random_state=RANDOM_STATE)
     )
     reg.fit(X_train, y_train)
     preds = reg.predict(X_test)
@@ -146,7 +176,7 @@ def study_b2_risk_regression(cleaned, X_train, y_train, X_test, y_test, sensitiv
 
     gender_train = sensitive["Gender"].loc[X_train.index].reset_index(drop=True)
     reweighted = F.build_pipeline(
-        cleaned, GradientBoostingRegressor(random_state=RANDOM_STATE)
+        model_frame, GradientBoostingRegressor(random_state=RANDOM_STATE)
     )
     rw = FAIR.fit_reweighing(reweighted, X_train, y_train, gender_train)
     rw_preds = rw.predict(X_test)
@@ -236,6 +266,14 @@ def main() -> None:
     predictor = io.load_artifact("attrition_predictor.pkl")
 
     baseline_audit = study_a_baseline_audit(X_test, y_test, predictor, sensitive)
+
+    intersectional_audit = FAIR.audit(
+        y_test,
+        predictor.predict(X_test),
+        {k: v.loc[X_test.index] for k, v in sensitive.items() if k in ("GenderXAgeBand", "GenderXDepartment")},
+        groups=["GenderXAgeBand", "GenderXDepartment"],
+    )
+
     mitigation = study_b_mitigation(X_train, y_train, X_test, y_test, sensitive)
     regression = study_b2_risk_regression(cleaned, X_train, y_train, X_test, y_test, sensitive)
     power_curve = study_c_power_curve()
@@ -244,6 +282,7 @@ def main() -> None:
         "random_state": RANDOM_STATE,
         "test_size": TEST_SIZE,
         "baseline_audit": baseline_audit,
+        "intersectional_audit": intersectional_audit,
         "mitigation": mitigation,
         "risk_regression": regression,
         "power_curve": power_curve,

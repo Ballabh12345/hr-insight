@@ -8,7 +8,6 @@ Run against a live server:
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -51,7 +50,6 @@ def main() -> None:
             page.wait_for_timeout(20_000 if "salary" in question else 4000)
             page.wait_for_timeout(3000)
 
-        text = page.inner_text("body")
         path = OUT / "08_assistant_conversation.png"
         page.screenshot(path=str(path), full_page=False)
         print(f"[shot] {path.relative_to(ROOT)}")

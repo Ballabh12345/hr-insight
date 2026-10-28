@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 
 
 def test_constants_and_id_are_dropped(cleaned_df):

@@ -47,7 +47,8 @@ def test_every_page_renders(page):
 
 
 def test_navigation_contains_every_page(app_test):
-    options = [o for o in app_test.sidebar.radio[0].options]
+    # Nav labels render as "<glyph>  <page name>"; the pin is on the page set.
+    options = [o.split("  ", 1)[-1] for o in app_test.sidebar.radio[0].options]
     assert options == PAGES
 
 

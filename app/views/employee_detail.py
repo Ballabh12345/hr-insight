@@ -2,63 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
 from app import theme
 from app.services import audit_service, data_service as data, model_service
-
-
-def _risk_gauge(probability: float, band: str) -> go.Figure:
-    """A horizontal risk meter with the band thresholds marked.
-
-    Plotly's gauge indicator only supports ``angular`` and ``bullet`` shapes, and a
-    bullet gauge reads poorly at this size. A single horizontal bar with threshold
-    markers is both simpler and clearer.
-    """
-    color = theme.risk_color(band)
-    fig = go.Figure(
-        go.Bar(
-            x=[probability],
-            y=["Attrition risk"],
-            orientation="h",
-            marker={"color": color},
-            width=0.4,
-            text=f"<b>{probability:.0%}</b>",
-            textposition="outside",
-            textfont={"size": 22, "color": theme.TOKENS["text_primary"]},
-            hovertemplate="Attrition risk %{x:.1%}<extra></extra>",
-        )
-    )
-    for threshold in (0.25, 0.55):
-        fig.add_vline(
-            x=threshold,
-            line={"color": theme.TOKENS["border_strong"], "width": 1, "dash": "dash"},
-        )
-    fig.update_layout(
-        height=120,
-        margin=dict(l=4, r=52, t=6, b=6),
-        showlegend=False,
-        bargap=0.5,
-        xaxis={
-            "range": [0, 1],
-            "tickmode": "array",
-            "tickvals": [0, 0.25, 0.55, 1.0],
-            "ticktext": ["0%", "25%", "55%", "100%"],
-            "gridcolor": theme.TOKENS["border_subtle"],
-            "zeroline": False,
-            "showline": False,
-            "ticks": "",
-            "tickfont": {"size": 10, "color": theme.TOKENS["text_helper"]},
-        },
-        yaxis={
-            "showgrid": False,
-            "zeroline": False,
-            "showticklabels": False,
-            "ticks": "",
-        },
-    )
-    return fig
 
 
 def render() -> None:
@@ -75,13 +26,16 @@ def render() -> None:
 
     options = data.employee_options(df)
     ids = list(options)
-    default_index = 0
+    # An arrival from the Employees table pre-selects this employee exactly once.
+    preselect = st.session_state.pop("detail_employee", None)
+    if preselect and preselect in ids:
+        st.session_state["emp_select"] = preselect
+
     selected = st.selectbox(
         "Employee",
         ids,
         format_func=lambda i: options[i],
-        index=default_index,
-        label_visibility="collapsed",
+        key="emp_select",
     )
     emp = df[df["EmployeeNumber"] == selected].iloc[0]
 
@@ -91,18 +45,24 @@ def render() -> None:
     with left:
         with st.container(border=True):
             st.markdown(theme.section_label("Attrition risk"), unsafe_allow_html=True)
-            st.plotly_chart(
-                _risk_gauge(float(emp["attrition_probability"]), str(emp["risk_band"])),
-                width="stretch",
-                config={"displayModeBar": False},
-            )
             st.markdown(
-                f'<div style="text-align:center; margin-top:0.25rem;">'
-                f'{theme.risk_badge(str(emp["risk_band"]))}'
-                f'<div class="small-note" style="margin-top:0.5rem;">'
-                f"Bands: &lt;25% &middot; 25-55% &middot; &gt;55%</div></div>",
+                theme.risk_meter(float(emp["attrition_probability"]), str(emp["risk_band"])),
                 unsafe_allow_html=True,
             )
+            conformal = model_service.load_attrition_metrics().get("conformal", {})
+            q_hat = conformal.get("q_hat")
+            if q_hat is not None:
+                p = float(emp["attrition_probability"])
+                pred_set = []
+                if 1.0 - p <= q_hat:
+                    pred_set.append("Leave")
+                if p <= q_hat:
+                    pred_set.append("Stay")
+                st.markdown(
+                    f'<div class="small-note" style="margin-top:0.5rem;">Conformal set '
+                    f'(α={conformal.get("alpha")}): {", ".join(pred_set) or "∅"}</div>',
+                    unsafe_allow_html=True,
+                )
 
     with middle:
         with st.container(border=True):
@@ -130,11 +90,11 @@ def render() -> None:
         with st.container(border=True):
             st.markdown(theme.section_label("Talent placement"), unsafe_allow_html=True)
             st.markdown(
-                f'<div style="font-size:1.75rem; font-weight:600; '
+                f'<div style="font-size:1.9rem; font-weight:700; letter-spacing:-0.02em; '
                 f'color:{theme.TOKENS["text_primary"]};">{emp["ninebox_label"]}</div>'
                 f'<div style="font-size:0.8125rem; color:{theme.TOKENS["text_helper"]}; margin-top:0.25rem;">'
-                f'Performance {emp["performance_tier"]} &nbsp;&middot;&nbsp; '
-                f'Potential {emp["potential_tier"]} &nbsp;&middot;&nbsp; '
+                f'Performance {emp["performance_tier"]} &nbsp;\u00b7&nbsp; '
+                f'Potential {emp["potential_tier"]} &nbsp;\u00b7&nbsp; '
                 f'Persona cluster {int(emp["persona_cluster"])}</div>',
                 unsafe_allow_html=True,
             )
@@ -142,9 +102,9 @@ def render() -> None:
             st.markdown(theme.section_label("Recommended action"), unsafe_allow_html=True)
             st.markdown(
                 f'<div style="font-size:1rem; color:{theme.TOKENS["text_primary"]}; '
-                f'padding:0.75rem; background:{theme.TOKENS["surface"]}; '
+                f'padding:0.75rem; background:{theme.TOKENS["card_2"]}; '
                 f'border-left:3px solid {theme.risk_color(str(emp["risk_band"]))}; '
-                f'border-radius:0 4px 4px 0;">{emp["retention_action"]}</div>',
+                f'border-radius:0 10px 10px 0;">{emp["retention_action"]}</div>',
                 unsafe_allow_html=True,
             )
 
@@ -172,17 +132,19 @@ def render() -> None:
                                 if r["impact"] > 0
                                 else theme.TOKENS["support_success"]
                                 for r in reasons
-                            ]
+                            ],
+                            "cornerradius": 6,
                         },
                         hovertemplate="<b>%{y}</b><br>Impact %{x:.3f} log-odds<extra></extra>",
                     )
                 )
-                fig.update_layout(height=210, margin=dict(l=8, r=8, t=8, b=8), showlegend=False)
-                fig.update_xaxes(title_text="Contribution to log-odds")
+                fig.update_layout(height=220, margin=dict(l=8, r=8, t=8, b=8), showlegend=False)
+                fig.update_xaxes(title_text="")
                 fig.update_yaxes(autorange="reversed")
-                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+                theme.chart(fig)
                 st.markdown(
-                    '<div class="small-note">Red pushes the risk up, green pushes it down. '
+                    f'<div class="small-note">Red ({theme.TOKENS["support_error"]}) pushes the '
+                    f'risk up, green ({theme.TOKENS["support_success"]}) pushes it down. '
                     "Values are additive contributions in log-odds space.</div>",
                     unsafe_allow_html=True,
                 )
@@ -224,7 +186,7 @@ def render() -> None:
     # ------------------------------------------------------------- decision
     st.markdown(theme.section_label("Record the decision"), unsafe_allow_html=True)
     with st.container(border=True):
-        c1, c2 = st.columns([1, 2], gap="large")
+        c1, c2 = st.columns([2, 3], gap="large")
         with c1:
             st.markdown(
                 f'<div style="font-size:0.8125rem; color:{theme.TOKENS["text_secondary"]};">'
@@ -243,11 +205,13 @@ def render() -> None:
             reason = st.text_input(
                 "Override reason (required only when overriding)",
                 placeholder="e.g. Recently promoted - retention risk not applicable",
-                label_visibility="collapsed",
+                key="override_reason",
             )
-            b1, b2, b3 = st.columns([1, 1, 2])
+            b1, b2 = st.columns(2)
             with b1:
-                if st.button("Accept", type="primary", width="stretch"):
+                # The single dominant action is the blue primary; the Override is
+                # a tertiary (danger-outline) button.
+                if st.button("Accept", type="primary", width="stretch", key="accept_decision"):
                     audit_service.record_decision(
                         employee_number=int(emp["EmployeeNumber"]),
                         job_role=str(emp["JobRole"]),
@@ -259,7 +223,7 @@ def render() -> None:
                     )
                     st.success("Decision recorded.")
             with b2:
-                if st.button("Override", width="stretch"):
+                if st.button("Override", type="tertiary", width="stretch", key="override_decision"):
                     if not reason.strip():
                         st.error("An override needs a reason.")
                     else:
@@ -274,5 +238,44 @@ def render() -> None:
                             override_reason=reason,
                         )
                         st.success("Override recorded.")
-            with b3:
-                st.markdown("", unsafe_allow_html=True)
+
+    # ------------------------------------------------ what-if simulator
+    with st.expander("What-if simulator (model sensitivity, not causal proof)"):
+        st.markdown(
+            '<div class="small-note">Change one or more features and re-score this employee. '
+            "This shows how the model responds; it is not proof that changing the factor "
+            "would change the outcome.</div>",
+            unsafe_allow_html=True,
+        )
+        base_values = model_service.get_employee_feature_values(int(emp["EmployeeNumber"]))
+        overrides: dict = {}
+        if str(emp.get("OverTime")) == "Yes":
+            if st.checkbox("Set overtime to No", key="wi_overtime"):
+                overrides["OverTime"] = "No"
+        feature = st.selectbox(
+            "Feature to change", list(base_values.keys()), key="wi_feature"
+        )
+        current = base_values.get(feature)
+        new_value = st.text_input(
+            f"New value (current: {current})", key="wi_value"
+        )
+        if st.button("Compute new risk", key="wi_compute"):
+            if new_value.strip():
+                val: Any = new_value.strip()
+                if isinstance(current, (int, float, np.integer, np.floating)):
+                    try:
+                        parsed = float(val)
+                        val = parsed
+                    except ValueError:
+                        st.error("Please enter a numeric value for this feature.")
+                        return
+                overrides[feature] = val
+            new_proba = model_service.predict_with_overrides(
+                int(emp["EmployeeNumber"]), overrides
+            )
+            if new_proba is not None:
+                delta = new_proba - float(emp["attrition_probability"])
+                st.markdown(
+                    f"New predicted risk: **{new_proba:.1%}** "
+                    f"(delta {delta:+.1%} vs. {float(emp['attrition_probability']):.1%})."
+                )

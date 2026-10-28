@@ -1,104 +1,104 @@
 {
   "importance": [
     {
+      "feature": "MonthlyIncome",
+      "label": "Monthly income",
+      "importance": 0.7476457316026467
+    },
+    {
       "feature": "OverTime",
       "label": "Works overtime",
-      "importance": 0.7894896277232556
-    },
-    {
-      "feature": "JobRole",
-      "label": "Job role",
-      "importance": 0.4942987248303435
-    },
-    {
-      "feature": "EnvironmentSatisfaction",
-      "label": "Work environment satisfaction",
-      "importance": 0.42693946068849326
-    },
-    {
-      "feature": "TotalWorkingYears",
-      "label": "Total working years",
-      "importance": 0.39926190512871756
-    },
-    {
-      "feature": "YearsSinceLastPromotion",
-      "label": "Years since last promotion",
-      "importance": 0.39158452316372955
-    },
-    {
-      "feature": "NumCompaniesWorked",
-      "label": "Previous employers",
-      "importance": 0.3899237507758256
-    },
-    {
-      "feature": "JobSatisfaction",
-      "label": "Job satisfaction",
-      "importance": 0.35192901589097125
-    },
-    {
-      "feature": "YearsWithCurrManager",
-      "label": "Years with current manager",
-      "importance": 0.33182130071368987
-    },
-    {
-      "feature": "Age",
-      "label": "Age",
-      "importance": 0.3310374226413953
-    },
-    {
-      "feature": "MaritalStatus",
-      "label": "Marital status",
-      "importance": 0.32079964044959536
-    },
-    {
-      "feature": "BusinessTravel",
-      "label": "Business travel frequency",
-      "importance": 0.3155983902963987
-    },
-    {
-      "feature": "DistanceFromHome",
-      "label": "Distance from home",
-      "importance": 0.2970555998744591
-    },
-    {
-      "feature": "YearsInCurrentRole",
-      "label": "Years in the current role",
-      "importance": 0.28916779958436856
-    },
-    {
-      "feature": "JobInvolvement",
-      "label": "Job involvement",
-      "importance": 0.2862542945358792
-    },
-    {
-      "feature": "Department",
-      "label": "Department",
-      "importance": 0.24555069849178043
-    },
-    {
-      "feature": "StockOptionLevel",
-      "label": "Stock option level",
-      "importance": 0.24155925235663264
-    },
-    {
-      "feature": "RelationshipSatisfaction",
-      "label": "Relationship satisfaction",
-      "importance": 0.2400393416720443
-    },
-    {
-      "feature": "WorkLifeBalance",
-      "label": "Work-life balance",
-      "importance": 0.23500567713736026
-    },
-    {
-      "feature": "EducationField",
-      "label": "EducationField",
-      "importance": 0.1841411484784789
+      "importance": 0.7120059883970052
     },
     {
       "feature": "JobLevel",
       "label": "Job level",
-      "importance": 0.1689146713469501
+      "importance": 0.5693855478101164
+    },
+    {
+      "feature": "TenureRatio",
+      "label": "TenureRatio",
+      "importance": 0.5682190037613916
+    },
+    {
+      "feature": "TotalWorkingYears",
+      "label": "Total working years",
+      "importance": 0.5340262156586137
+    },
+    {
+      "feature": "JobRole",
+      "label": "Job role",
+      "importance": 0.49245739893638424
+    },
+    {
+      "feature": "EnvironmentSatisfaction",
+      "label": "Work environment satisfaction",
+      "importance": 0.44724941119238204
+    },
+    {
+      "feature": "NumCompaniesWorked",
+      "label": "Previous employers",
+      "importance": 0.43925840007457984
+    },
+    {
+      "feature": "JobSatisfaction",
+      "label": "Job satisfaction",
+      "importance": 0.35629553610903536
+    },
+    {
+      "feature": "MaritalStatus",
+      "label": "Marital status",
+      "importance": 0.3404222580868396
+    },
+    {
+      "feature": "YearsInCurrentRole",
+      "label": "Years in the current role",
+      "importance": 0.32485018502679053
+    },
+    {
+      "feature": "JobInvolvement",
+      "label": "Job involvement",
+      "importance": 0.3227204637453337
+    },
+    {
+      "feature": "BusinessTravel",
+      "label": "Business travel frequency",
+      "importance": 0.31857354823490036
+    },
+    {
+      "feature": "YearsSinceLastPromotion",
+      "label": "Years since last promotion",
+      "importance": 0.288981606640731
+    },
+    {
+      "feature": "Age",
+      "label": "Age",
+      "importance": 0.28248714243534395
+    },
+    {
+      "feature": "YearsAtCompany",
+      "label": "Years at the company",
+      "importance": 0.28245792774570877
+    },
+    {
+      "feature": "IncomeRelJobLevel",
+      "label": "Income relative to job level",
+      "importance": 0.2698526853173714
+    },
+    {
+      "feature": "WorkLifeBalance",
+      "label": "Work-life balance",
+      "importance": 0.2569304732101932
+    },
+    {
+      "feature": "DistanceFromHome",
+      "label": "Distance from home",
+      "importance": 0.25437310186478845
+    },
+    {
+      "feature": "Department",
+      "label": "Department",
+      "importance": 0.24914673118113156
     }
   ],
   "unit": "mean absolute SHAP value (log-odds)"

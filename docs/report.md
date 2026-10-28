@@ -501,21 +501,38 @@ layer and covered by tests.
 
 ### 8.4 Design system
 
-The interface is built on the **IBM Carbon Design System** (open source, Apache-2.0),
-chosen because it is a complete, enterprise-grade token system with published WCAG
-contrast tables, a purpose-built accessible data-visualisation palette, and thematically
-coherent provenance. The full token sheet, chart palettes, typography, 8px spacing grid
-and the eleven Streamlit-specific overrides are documented in `docs/design.md`.
+The interface uses the **IBM Carbon Design System** *structure* (open source, Apache-2.0) —
+the 8px mini-unit grid, tokenised colour roles, layer separation and IBM Plex type — with
+**"Aurora Glass"** (**Palette v3** in `docs/design.md` §0): a light-blue glassmorphism
+layer with a real **day/night toggle**. Cards are frosted translucent glass (blur 18px +
+1px light border + inset top highlight + soft shadow) floating on an ambient,
+slowly-drifting gradient-orb canvas; the sidebar is deep-navy glass in both modes; KPI
+numbers use gradient text; entrance, hover and meter animations are CSS-only and fully
+gated behind `prefers-reduced-motion`. The mode toggle is a real widget — not a CSS hack:
+choosing Night reruns the app with the alternate token sheet, re-injected stylesheet, and
+a rebuilt Plotly template; the choice persists in the URL (`?mode=…`).
+
+Two cross-page interactions tie the system together: selecting a row in **Employees**
+offers *"Review this employee →"* (jumps to the decision surface pre-selected), and
+clicking a department bar on **Overview** offers *"Open … in Employees →"* (jumps
+pre-filtered). Contrast is still the design driver: the primary fill keeps white text at
+5.2:1 AA in both modes, night "accent" text uses the sky family on dark (≥7:1), and the
+risk red/amber/green family carries AA-paired badge text in each mode. The v2 dark
+"verdict" sheet and the original Carbon light sheet remain in `docs/design.md` as the
+audit trail.
 
 | Element | Value |
 |---|---|
-| Surface / background | `#ffffff` / `#f4f4f4` |
-| Sidebar (Gray 100 dark theme) | `#161616` |
-| Primary | `#0f62fe` (Blue 60) |
-| Risk: High / Medium / Low | `#da1e28` / `#ff832b` / `#198038` |
+| Day canvas / Night canvas | `#eef4ff` light-blue w/ weathered orbs / `#0a1020` indigo w/ indigo-violet orbs |
+| Glass card layer | day `rgba(255,255,255,0.58)` · night `rgba(255,255,255,0.06)`, blur 18px + 16px radii |
+| Sidebar shell | deep-navy glass `rgba(11,17,32,0.74)` day / `rgba(8,11,24,0.78)` night (blur 22px) |
+| Primary (interactive fill) | `#2563eb` — white text **5.2:1** (AA, both modes); hover `#1d4ed8` |
+| Interactive text / links | day `#1d4ed8` on glass **7.4:1** · night `#7dd3fc` **10.9:1** |
+| Body ink | day navy `#0b1b34` **14.9:1** · night `#e6efff` **14.9:1** |
+| Risk: High / Medium / Low marks | day `#e11d48` / `#f59e0b` / `#10b981` · night `#fb7185` / `#fbbf24` / `#34d399` |
 | Typeface | IBM Plex Sans |
-| Spacing | 8px mini unit |
-| Chart palette | Carbon's curated categorical order, truncated from the left |
+| Spacing | 8px mini unit; 16px card radii |
+| Chart palettes | per-mode categorical / sequential ramps with mode-aware ink; red-pushes-up vs green-pulls-down SHAP semantics |
 
 ### 8.5 The assistant, and how it stays within budget
 
@@ -583,6 +600,12 @@ default in the UI's "sources only" mode.
    actually does is the only way to validate the explainability work.
 5. **Adversarial explanation testing** — Slack et al. (2020) suggest the explanations
    themselves should be stress-tested.
+6. **Phase-2 networking (documented, not built).** Sharing over the office LAN is a
+   configuration step rather than a code change: `streamlit run app/main.py --server.address
+   0.0.0.0 --server.port 8501`, a corresponding Windows Defender firewall rule (allow
+   inbound TCP on the port for private networks), and the app then serves to any device on
+   the LAN at `http://<host-ip>:8501`. It is deliberately deferred so the submission stays
+   single-machine by default.
 
 ---
 

@@ -25,9 +25,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-theme.inject_theme()
-theme.register_plotly_template()
-
 PAGES = {
     "Overview": ("app.views.overview", "Workforce risk at a glance"),
     "Employees": ("app.views.employees", "Search and filter the workforce"),
@@ -38,20 +35,74 @@ PAGES = {
     "Assistant": ("app.views.assistant", "Ask about the workforce or the labour market"),
 }
 
+#: Glyph prefixes for nav items (display-only; the radio options stay bare).
+NAV_ICONS = {
+    "Overview": "◎",
+    "Employees": "⌗",
+    "Employee detail": "⧉",
+    "Fairness audit": "⚖",
+    "Model performance": "∿",
+    "Decision log": "⿴",
+    "Assistant": "✦",
+}
+
+_MODE_CHOICE = {"☀️ Day": "day", "🌙 Night": "night"}
+
+
+def _resolve_mode() -> str:
+    """Day/Night is widget state first, then ?mode= in the URL, then Day."""
+    if "app_mode" not in st.session_state:
+        qp = st.query_params.get("mode", "")
+        st.session_state["app_mode"] = qp if qp in theme.MODES else "day"
+    return st.session_state["app_mode"]
+
 
 def _sidebar() -> str:
     """Render the navigation shell and return the selected page."""
+    current = _resolve_mode()
     with st.sidebar:
         st.markdown(
-            '<div style="padding:0.25rem 0 1rem 0.75rem;">'
-            '<div style="font-size:1.25rem; font-weight:600; color:#ffffff; '
-            'letter-spacing:-0.01em;">HR Insight</div>'
-            '<div style="font-size:0.75rem; color:#a8a8a8; margin-top:0.25rem;">'
-            "Smart HR Decision Support Platform</div></div>",
+            '<div style="padding:0.25rem 0 0.75rem 0.75rem;">'
+            '<div style="font-size:1.3rem; font-weight:700; letter-spacing:-0.02em; '
+            f'color:{theme.TOKENS["sidebar_text"]};">HR Insight</div>'
+            f'<div style="font-size:0.75rem; color:{theme.TOKENS["sidebar_text_2"]}; '
+            'margin-top:0.2rem;">Smart HR Decision Support Platform</div></div>',
             unsafe_allow_html=True,
         )
+
+        # Appearance toggle - a real widget state, applied on this rerun.
+        choice = st.segmented_control(
+            "Appearance",
+            list(_MODE_CHOICE),
+            default=st.session_state["app_mode"] == "night" and "🌙 Night" or "☀️ Day",
+            key="appearance",
+        )
+        if choice is not None and _MODE_CHOICE[choice] != current:
+            st.session_state["app_mode"] = _MODE_CHOICE[choice]
+            st.query_params["mode"] = _MODE_CHOICE[choice]
+            st.rerun()
+
+        # Hard refresh - rebuild every cached load without restarting the server.
+        if st.button(
+            "⟳ Hard refresh",
+            help=(
+                "Clear all Streamlit caches (dataset, models, fairness report) and "
+                "rebuild this page from the current artifacts on disk. Use it after "
+                "retraining, or press Ctrl+F5 for a browser-level hard refresh."
+            ),
+            use_container_width=True,
+        ):
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.session_state["just_hard_refreshed"] = True
+            st.rerun()
+
+        if st.session_state.pop("just_hard_refreshed", False):
+            st.toast("Cache cleared - data rebuilt from disk.", icon="⟳")
+
         st.markdown(
-            '<div class="section-label" style="color:#6f6f6f;">Navigation</div>',
+            f'<div class="section-label" style="color:{theme.TOKENS["sidebar_text_2"]}; '
+            'margin-left:0.75rem;">Navigation</div>',
             unsafe_allow_html=True,
         )
         labels = list(PAGES)
@@ -59,20 +110,29 @@ def _sidebar() -> str:
             "Navigation",
             labels,
             label_visibility="collapsed",
-            format_func=lambda x: x,
+            format_func=lambda x: f"{NAV_ICONS.get(x, '')}  {x}",
+            key="nav",
         )
+        # Flows with the nav (not position:fixed) so it can never overlay items.
         st.markdown(
-            '<div style="position:fixed; bottom:1rem; left:0.75rem; right:0.75rem; '
-            'font-size:0.75rem; color:#6f6f6f;">'
+            f'<div style="margin-top:2rem; padding:1rem 0 1rem 0.75rem; '
+            f'border-top:1px solid {theme.TOKENS["sidebar_border"]}; '
+            f'font-size:0.75rem; color:{theme.TOKENS["sidebar_text_2"]}; line-height:1.7;">'
             "Machine Learning &middot; CCSML0301<br>"
             "IBM HR Analytics dataset (fictional, CC0)<br>"
-            "IBM Carbon Design System</div>",
+            "Aurora Glass design system</div>",
             unsafe_allow_html=True,
         )
     return selected
 
 
 def main() -> None:
+    # Palette first so both the sidebar and the page body render in one style.
+    current = _resolve_mode()
+    theme.set_mode(current)
+    theme.inject_theme()
+    theme.register_plotly_template()
+
     selected = _sidebar()
     module_name, _ = PAGES[selected]
     module = __import__(module_name, fromlist=["render"])

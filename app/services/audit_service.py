@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_decisions_employee ON decisions(employee_number);
 def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.execute(SCHEMA)
+    conn.executescript(SCHEMA)  # SCHEMA holds two statements (table + index)
     conn.commit()
     return conn
 

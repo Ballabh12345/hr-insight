@@ -1,15 +1,194 @@
 # HR Insight — Design System (`design.md`)
 
-**Source of truth:** [IBM Carbon Design System](https://carbondesignsystem.com/) (open source, Apache-2.0).
-Chosen because it is an enterprise-grade, fully-tokenised system with published WCAG contrast
-tables, a purpose-built data-visualisation palette, and thematic coherence with the IBM HR
-Analytics dataset used in this project.
+**Structure source:** [IBM Carbon Design System](https://carbondesignsystem.com/) (open source, Apache-2.0).
+The layout discipline — tokenised roles, the 8px mini-unit, IBM Plex type, layer separation,
+audit-trail documentation — is Carbon. **Applied to:** Streamlit 1.65.0, Plotly 7.1.0, IBM Plex Sans.
 
-**Applied to:** Streamlit 1.65.0 (single-page app), Plotly 7.1.0 charts, IBM Plex Sans type.
+> The original build used Carbon's White theme + Blue 60 brand. It was re-skinned as
+> **Palette v2 (§0.5)** — dark canvas, lavender/chartreuse/tomato — after a hands-on review
+> found the all-white version read as a wireframe. It has now been rebuilt as
+> **Palette v3 (§0)** — "Aurora Glass" — after a design review asked for a light-blue,
+> premium-but-simple glassmorphism look with a day/night toggle. The Carbon value sheet is
+> retained in §1–§9 as the audit trail and fallback; where §0 supersedes a value below, §0 wins.
 
 ---
 
-## 1. Colour tokens
+## 0. Palette v3 — Aurora Glass (current)
+
+A light-blue glassmorphism layer on the same Carbon layout discipline: an ambient
+gradient-orb canvas, frosted translucent cards, a deep-navy glass sidebar in **both**
+modes, gradient-text numbers, and a real day/night toggle. Chartreuse and tomato are
+retired from general use; the risk palette is a single red/amber/green family in both modes.
+
+### 0.1 How the mode switch works (no CSS hacks)
+
+* The toggle is a **real widget**: `st.segmented_control("Appearance", …)` at the top of
+  the sidebar. Streamlit reruns the script, `theme.set_mode()` swaps the exported token
+  sheets (`TOKENS`, `RISK_COLORS`, `SEQUENTIAL`, …), `theme.inject_theme()` re-injects the
+  rebuilt stylesheet, and `theme.register_plotly_template()` rebuilds the Plotly template
+  for the same mode. Everything on the page — including charts — follows in one run.
+* **Day is the default**; the choice is persisted in the URL as `?mode=day|night` via
+  `st.query_params`.
+* `.streamlit/config.toml` keeps `base = "light"` fixed (Streamlit cannot switch its native
+  base theme at runtime). Night mode is a full CSS overlay; the one place the base shows
+  through under night styling — the data grid — intentionally keeps its light sheet, which
+  reads as a bright data card on the dark canvas.
+
+### 0.2 Day tokens (default)
+
+| Role | Value | Contrast | Notes |
+|---|---|---|---|
+| Canvas | gradient `#eaf2ff → #f7fbff → #eef6ff` | — | with sky/cyan ambient orbs (animated) |
+| Glass card fill | `rgba(255,255,255,0.58)` + blur 18px | body ink **~14:1** | nested surfaces raise to `0.82` |
+| Card border / top highlight | `rgba(255,255,255,0.70)` / inset `0.90` | — | the "glass edge" |
+| Text primary / secondary / helper | `#0b1b34` / `#3c5372` / `#5b6b8a` | 14.9 / 7.6 / 4.8 on card | navy ink family |
+| Primary fill | `#2563eb` | white text **5.2:1** ✅ AA | hover deepens to `#1d4ed8` (6.7:1) |
+| Primary text / links / chart lines | `#1d4ed8` | 7.4:1 on card ✅ | the deep end, never the neon |
+| KPI value gradient | `#1d4ed8 → #60a5fa` (lighted by transparent-fill) | dark ends ≥ AA | on all five KPI cards |
+
+### 0.3 Night tokens
+
+| Role | Value | Contrast | Notes |
+|---|---|---|---|
+| Canvas | gradient `#0a1020 → #101a33 → #0b1226` | — | indigo/violet/teal ambient orbs (animated) |
+| Glass card fill | `rgba(255,255,255,0.06)` + blur 18px | light ink **11:1** | border lifts to `0.22` |
+| Text primary / secondary / helper | `#e6efff` / `#a7b8d8` / `#8296b8` | 14.9 / 7.9 / 5.2 on card | the same roles, inverted |
+| Primary fill | `#2563eb` (shared with day) | white **5.2:1** ✅ | hover `#1d4ed8` (6.7:1) — night keeps AA by sharing the day blues |
+| Accent text / lines | `#7dd3fc` | 10.9:1 on card ✅ | sky family owns "interactive text" |
+| KPI value gradient | `#dbeafe → #7dd3fc` | — | bright-on-glass |
+
+### 0.4 The glass recipe (load-bearing)
+
+Glass only reads as glass over a **non-flat** background. Every card therefore needs all
+five layers, in this order:
+
+1. translucent fill (token above);
+2. `backdrop-filter: blur(18px) saturate(1.35)` (sidebar uses 22px);
+3. 1px light border (`rgba(255,255,255,…)` per mode);
+4. 1px inset top highlight — `inset 0 1px 0 rgba(255,255,255,0.9)` day / `0.22` night;
+5. one soft shadow — `0 8px 32px rgba(37,99,235,0.12)` day / `rgba(2,6,18,0.45)` night.
+
+The orb layer lives on `body::before` (fixed, `z-index:-1`), so every card's
+`backdrop-filter` picks it up. Radii: 16px cards, 10px buttons/inputs, 8px charts, 999px badges.
+
+### 0.5 Risk palette + status accents
+
+| Band | Marks & badges (day) | Marks & badges (night) | Badge text on tint/contrast |
+|---|---|---|---|
+| High | `#e11d48` | `#fb7185` | `#be123c` on 12% rose tint ✅ / `#fb7185` on 16% ✅ |
+| Medium | `#f59e0b` | `#fbbf24` | `#b45309` on 16% amber ✅ / `#fbbf24` on 14% ✅ |
+| Low | `#10b981` | `#34d399` | `#047857` on 14% mint ✅ / `#34d399` on 14% ✅ |
+
+Badges are glass pills with a status dot. The Override stays the single danger-outline
+button (`type="tertiary"` + the band-red). Chartreuse/tomato appear only inside the
+retired v2 sheet (below).
+
+### 0.6 Motion and micro-interaction (CSS only)
+
+Everything is gated behind `@media (prefers-reduced-motion: reduce)`, which collapses to
+no animation and 1ms transitions:
+
+| Motion | Where | Spec |
+|---|---|---|
+| Rise + fade (entrance) | content elements, staggered ~45ms per element | `480ms cubic-bezier(.22,.61,.36,1)` |
+| Card hover lift | glass cards, KPI cards | `translateY(-2px)` + deeper shadow, 200ms |
+| Ambient orb drift | `body::before` | `90s ease-in-out infinite alternate` |
+| Meter fill growth | employee-detail risk meter | 800ms ease-out from 0 width |
+| Pulsing dot | KPI cards with a **high** accent | 2.2s soft pulse |
+| Sidebar crop-out (minimize) | `[data-testid=stSidebar]` | `min-width/max-width/transform` 480ms eased; panel stays solid glass during the slide, content fades + slides `-20px`, background/border fade *after* the crop completes |
+| Sidebar crop-in (maximize) | same element, `aria-expanded="true"` | panel reappears fully painted, content fades back in with a 60ms delay |
+
+The sidebar minimize/maximize rides on Streamlit's own class-flip mechanism
+(collapsed = `aria-expanded="false"` on the section, which retargets `min-width`,
+`max-width` and `transform`). The built-in `300ms` transition is replaced with the
+480ms drawer ease above; `overflow: hidden` while collapsed guarantees a clean crop
+(no text paints past the shrinking edge). The **«** minimize control is forced always
+visible (Streamlit hides it unless hovered), and while minimized a labeled
+**» SIDEBAR** glass pill is the reopen control. Reduced-motion collapses all of this
+to 1ms.
+
+### 0.7 Interactivity (new in v3)
+
+1. **Employees → detail jump**: rows are selectable (`selection_mode="single-row"`);
+   selecting shows the employee chip and a primary *"Review this employee →"* button that
+   pre-selects the employee on the detail page.
+2. **Overview → Employees jump**: the department bar chart is click-selectable
+   (`st.plotly_chart(on_select="rerun", selection_mode=["points"])`); a confirmation banner
+   with *"Open … in Employees →"* jumps to the Employees page pre-filtered to that
+   department.
+3. Both cross-page moves run through callbacks (pre-rerun) writing the explicit
+   `nav` widget key — the only pattern that cannot be modified-after-instantiation banned
+   by Streamlit.
+
+### 0.8 Phase-2 networking (documented, intentionally not built)
+
+As decided in the design review, LAN/hosting is a *documented* future step, not code:
+`streamlit run app/main.py --server.address 0.0.0.0` plus a firewall allow-rule for the
+chosen port (and SmallNet/office LAN config). It is listed in `docs/report.md` §10.2.
+
+---
+
+## 0.5 Palette v2 — legacy (the dark "verdict" shell, retained for history)
+
+A custom colour layer on Carbon's layout system, motivated by contrast maths:
+chartreuse (even darkened) can never carry white text on a light canvas (~1.8:1), but
+reads at ~13.7:1 on the dark card; tomato with white text fails AA (~2.9:1) but operates
+as text/outline on dark (~5.8:1); lavender needs the dark end of its family for button
+fills. Dark canvas also resolves the former dark-sidebar / white-content incoherence.
+
+### 0.5.1 Core + shell tokens (`app/theme.py` → `TOKENS`)
+
+| Role | Hex | vs surface `#1e1b23` | vs canvas `#141216` | Notes |
+|---|---|---|---|---|
+| Canvas `bg` | `#141216` | — | — | Charcoal, violet undertone |
+| Card `surface` | `#1e1b23` | — | — | Layer 01 |
+| Emphasis `surface_2` | `#282430` | — | — | Nested panels, hover fills |
+| Border subtle / strong | `#332d40` / `#524a6b` | — | — | Hairlines / input & ghost borders |
+| Text primary | `#f4f2fa` | **15.3:1** | 16.8:1 | Body |
+| Text secondary | `#b8b3c8` | 8.3:1 | 9.2:1 | Notes, small-label text |
+| Text helper | `#8a84a0` | 4.8:1 | 5.4:1 | Captions, tick labels (AA normal) |
+| Sidebar bg | `#0e0c11` | — | — | Deeper than the canvas (shell) |
+
+### 0.5.2 Accent trio + interactivity
+
+| Role | Hex | Where it may appear | Contrast |
+|---|---|---|---|
+| Lavender fill (buttons, selected nav) | `#6d28d9` | Fill only | White text **7.1:1** ✅ |
+| Lavender accent (links, chart lines, active-nav edge) | `#a78bfa` | Text/line on dark | **6.3:1** ✅ on card |
+| Chartreuse (highlight) | `#c6f832` | Text/accents on dark **or fills with dark text only** | **13.7:1** on card ✅; dark-on-fill 15:1 ✅ |
+| Tomato (danger, High risk, danger-outline button) | `#ff6347` | Text/outline on dark **or fills with dark text only** | **5.8:1** on card ✅; dark-on-fill 6.3:1 ✅ |
+| Teal (success, Low risk) | `#3ddbd9` | Text/series on dark | **10:1** ✅ |
+
+**Hard rules from the maths:** never white-on-chartreuse or white-on-tomato; chartreuse
+High-value chart marks and badges keep the "Medium" slot; teal owns Low/success so
+"Danger" stays red-family. The Override button is the single danger-outline
+(`type="tertiary"` + tomato CSS); every other default button is a quiet ghost;
+`type="primary"` carries the lavender fill.
+
+### 0.5.3 Chart palettes
+
+| Palette | Content |
+|---|---|
+| Categorical (14) | Seeded lavender → chartreuse → tomato → teal, then pink, indigo, amber, mint, fuchsia, blue, salmon, slate, peach, cyan |
+| Sequential (9-box / confusion matrix) | Charcoal-violet → bright lavender (`#2a2536 … #cfc2fb`), light text except on the lightest step |
+| Diverging (fairness gaps) | Lavender ⇄ teal around parity |
+| Risk series (marks) | High `#ff6347` · Medium `#c6f832` · Low `#3ddbd9` |
+
+### 0.5.4 Streamlit config (`​.streamlit/config.toml`, v2 — superseded by §0.1)
+
+```toml
+[theme]
+base = "dark"
+primaryColor = "#a78bfa"
+backgroundColor = "#141216"
+secondaryBackgroundColor = "#1e1b23"
+textColor = "#f4f2fa"
+font = "sans serif"
+```
+
+---
+
+## 1. Colour tokens (legacy light sheet — superseded by §0, then §0.5)
 
 Carbon separates **roles** (what a colour does) from **values** (the hex it resolves to).
 We use the **White theme** for content and the **Gray 100 dark theme** for the navigation shell.

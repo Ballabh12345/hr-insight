@@ -149,7 +149,7 @@ serves them, so it starts instantly and cannot crash mid-demo on a retrain.
 hr-insight/
 ├── app/
 │   ├── main.py                  # entry point, sidebar navigation
-│   ├── theme.py                 # Carbon tokens + 11 Streamlit overrides + Plotly template
+│   ├── theme.py                  # Aurora Glass design system (day/night) + Plotly templates
 │   ├── views/                   # 7 pages
 │   └── services/                # data · model · fairness · audit · assistant
 ├── ml/
@@ -170,12 +170,21 @@ hr-insight/
 
 ## Design system
 
-The UI is built on the **IBM Carbon Design System** (open source, Apache-2.0) — full token
-sheet, chart palettes, typography, spacing and the 11 Streamlit-specific overrides are in
-[`docs/design.md`](docs/design.md). Sources: [tokens](https://carbondesignsystem.com/elements/color/tokens/),
-[data-viz palettes](https://carbondesignsystem.com/data-visualization/color-palettes/),
-[typography](https://carbondesignsystem.com/elements/typography/overview/),
-[2x grid](https://carbondesignsystem.com/elements/2x-grid/overview/).
+The app runs on **"Aurora Glass"** — a premium light-blue glassmorphism look with a real
+**Day/Night toggle** in the sidebar: frosted translucent cards (backdrop blur + soft
+shadows + a glass edge), an ambient drifting-orb canvas, a deep-navy glass sidebar in both
+modes, gradient KPI numbers, and staggered card-entrance/hover motion — all disabled under
+`prefers-reduced-motion`. The layout discipline is still the **IBM Carbon Design System**
+structure (open source, Apache-2.0): the 8px mini-unit grid, IBM Plex Sans type, tokenised
+roles and layer separation are all Carbon; the colour layer is custom.
+
+Both palettes and every measured WCAG ratio, the glass recipe, the motion rules, and the
+new cross-page interactions (select a row in **Employees** → *"Review this employee →"*;
+click a department bar on **Overview** → *"Open … in Employees →"*) are in
+[`docs/design.md`](docs/design.md) (§0 Palette v3).
+Structure sources: [tokens](https://carbondesignsystem.com/elements/color/tokens/),
+[2x grid](https://carbondesignsystem.com/elements/2x-grid/overview/),
+[typography](https://carbondesignsystem.com/elements/typography/overview/).
 
 ---
 

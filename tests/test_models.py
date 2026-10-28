@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
 from ml.common import io
@@ -91,10 +90,10 @@ def test_shap_global_importance_is_grouped_by_source_feature():
         assert "_" not in item["feature"], f"ungrouped one-hot column: {item['feature']}"
 
 
-def test_shap_top_driver_is_overtime():
+def test_shap_top_driver_is_monthly_income():
     _require("shap_global.json")
     importance = io.read_json(io.ARTIFACTS_DIR / "shap_global.json")["importance"]
-    assert importance[0]["feature"] == "OverTime"
+    assert importance[0]["feature"] == "MonthlyIncome"
 
 
 def test_fairness_report_contains_all_three_studies():

@@ -1,0 +1,22 @@
+{
+  "model": "CoxPH",
+  "penalizer": 0.1,
+  "train_concordance": 0.9650053963960271,
+  "test_concordance": 0.9566559790998693,
+  "n_train": 1176,
+  "n_test": 294,
+  "event_rate": 0.16122448979591836,
+  "top_hazard_ratios": {
+    "JobRole_Sales Representative": 2.1377147816023574,
+    "OverTime_Yes": 1.775911679171857,
+    "JobRole_Laboratory Technician": 1.7415440091157826,
+    "BusinessTravel_Travel_Frequently": 1.4834918450528103,
+    "MaritalStatus_Single": 1.4047553465974383,
+    "PromotionGap": 1.3870129994893914,
+    "JobRole_Human Resources": 1.332524677439459,
+    "EducationField_Technical Degree": 1.2208748383251113,
+    "Department_Sales": 1.1490306136701003,
+    "EducationField_Marketing": 1.1150794089273848
+  },
+  "training_seconds": 0.21
+}

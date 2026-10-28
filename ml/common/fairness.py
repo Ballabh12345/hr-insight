@@ -48,6 +48,9 @@ from fairlearn.postprocessing import ThresholdOptimizer
 #: Attributes the audit is reported over.
 FAIRNESS_GROUPS: list[str] = ["Gender", "AgeBand", "MaritalStatus", "Department"]
 
+#: Intersectional groups added for the stronger fairness study.
+INTERSECTIONAL_GROUPS: list[str] = ["GenderXAgeBand", "GenderXDepartment"]
+
 #: Which protected attribute the mitigations operate on.
 #: Gender is chosen as the primary axis because it is the attribute most commonly
 #: challenged in employment decisions, and it has adequate group sizes in this dataset.
@@ -242,3 +245,70 @@ def fit_threshold_optimizer(
     )
     post.fit(X_train, y_train, sensitive_features=_clean_sf(sensitive))
     return post
+
+
+def bootstrap_gap_ci(
+    y_true,
+    y_pred,
+    sensitive: pd.Series,
+    n_boot: int = 500,
+    ci: float = 0.95,
+    seed: int = 42,
+) -> tuple[float, float]:
+    """Bootstrap CI for the demographic-parity (selection-rate) gap."""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    s = np.asarray(sensitive).astype(str)
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    gaps: list[float] = []
+    alpha = (1.0 - ci) / 2.0
+    for _ in range(n_boot):
+        idx = rng.integers(0, n, size=n)
+        yp = y_pred[idx]
+        ss = s[idx]
+        rates = []
+        for g in np.unique(ss):
+            mask = ss == g
+            if mask.sum() == 0:
+                continue
+            rates.append(float(yp[mask].mean()))
+        if len(rates) < 2:
+            continue
+        gaps.append(float(max(rates) - min(rates)))
+    if not gaps:
+        return (float("nan"), float("nan"))
+    arr = np.asarray(gaps, dtype=float)
+    return (float(np.quantile(arr, alpha)), float(np.quantile(arr, 1.0 - alpha)))
+
+
+def calibration_by_group(
+    y_true,
+    y_proba,
+    sensitive: pd.Series,
+    n_bins: int = 10,
+) -> dict[str, dict[str, float]]:
+    """Per-group Brier score and expected calibration error."""
+    y_true = np.asarray(y_true).astype(float)
+    y_proba = np.asarray(y_proba, dtype=float)
+    s = np.asarray(sensitive).astype(str)
+    out: dict[str, dict[str, float]] = {}
+    for group in np.unique(s):
+        mask = s == group
+        if mask.sum() == 0:
+            continue
+        yt = y_true[mask]
+        yp = y_proba[mask]
+        brier = float(np.mean((yp - yt) ** 2))
+        # ECE with equal-width bins.
+        bins = np.linspace(0.0, 1.0, n_bins + 1)
+        ece = 0.0
+        for i in range(n_bins):
+            in_bin = (yp >= bins[i]) & (yp < bins[i + 1])
+            if in_bin.sum() == 0:
+                continue
+            acc = float(yt[in_bin].mean())
+            conf = float(yp[in_bin].mean())
+            ece += (in_bin.sum() / len(yp)) * abs(acc - conf)
+        out[str(group)] = {"brier": brier, "ece": float(ece), "n": int(mask.sum())}
+    return out

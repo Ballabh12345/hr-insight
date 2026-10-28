@@ -44,19 +44,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.decomposition import PCA
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import adjusted_rand_score
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
-    balanced_accuracy_score,
     f1_score,
     silhouette_score,
 )
 from sklearn.model_selection import (
     GridSearchCV,
-    KFold,
     StratifiedKFold,
     cross_val_score,
     train_test_split,
@@ -118,12 +118,7 @@ PERFORMANCE_TIERS = ["Low", "Medium", "High"]
 POTENTIAL_TIERS = ["Low", "Medium", "High"]
 
 
-def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Add derived columns used by the potential model."""
-    out = df.copy()
-    # Years of service per job level: lower means faster promotion velocity.
-    out["PromotionVelocity"] = out["YearsAtCompany"] / out["JobLevel"].clip(lower=1)
-    return out
+
 
 
 def engagement_composite(df: pd.DataFrame) -> pd.Series:
@@ -181,7 +176,7 @@ def main() -> None:
 
     path = io.download_ibm_hr()
     raw = F.load_dataset(path)
-    cleaned = add_engineered_features(F.clean(raw))
+    cleaned = F.clean(raw)
     print(f"[data] {len(cleaned)} employees")
 
     # ------------------------------------------------------- performance axis
@@ -206,6 +201,53 @@ def main() -> None:
             best_k, best_sil = k, score
 
     print(f"[kmeans] selected k={best_k} (silhouette={best_sil:.4f})")
+
+    # ------------------------------------------------ cluster comparison
+    cluster_comparison: dict[str, dict] = {}
+    for method_name in ("kmeans", "gmm", "agglomerative"):
+        scores: dict[int, float] = {}
+        best_k_m, best_sil_m = 3, -np.inf
+        for k in range(3, 9):
+            if method_name == "kmeans":
+                model = KMeans(n_clusters=k, n_init=10, random_state=RANDOM_STATE)
+                labels = model.fit_predict(pot_matrix)
+            elif method_name == "gmm":
+                model = GaussianMixture(n_components=k, random_state=RANDOM_STATE)
+                labels = model.fit_predict(pot_matrix)
+            else:
+                model = AgglomerativeClustering(n_clusters=k)
+                labels = model.fit_predict(pot_matrix)
+            try:
+                score = float(silhouette_score(pot_matrix, labels))
+            except Exception:
+                score = float("nan")
+            scores[k] = score
+            if np.isfinite(score) and score > best_sil_m:
+                best_k_m, best_sil_m = k, score
+        cluster_comparison[method_name] = {
+            "silhouette_by_k": scores,
+            "best_k": int(best_k_m),
+            "best_silhouette": float(best_sil_m),
+        }
+        print(f"[cluster] {method_name:14s} best k={best_k_m}  silhouette={best_sil_m:.4f}")
+
+    # ------------------------------------------------ kmeans bootstrap stability
+    rng = np.random.default_rng(RANDOM_STATE)
+    n = pot_matrix.shape[0]
+    reference_labels = KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE).fit_predict(pot_matrix)
+    ari_scores: list[float] = []
+    for _ in range(20):
+        sample_idx = rng.choice(n, size=int(0.8 * n), replace=False)
+        km_boot = KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE)
+        km_boot.fit(pot_matrix[sample_idx])
+        boot_labels = km_boot.predict(pot_matrix)
+        ari_scores.append(float(adjusted_rand_score(reference_labels, boot_labels)))
+    kmeans_stability = {
+        "n_resamples": len(ari_scores),
+        "ari_mean": float(np.mean(ari_scores)),
+        "ari_std": float(np.std(ari_scores, ddof=1)),
+    }
+    print(f"[kmeans] bootstrap ARI stability: {kmeans_stability['ari_mean']:.4f}+/-{kmeans_stability['ari_std']:.4f}")
 
     kmeans = KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE)
     cluster_labels = kmeans.fit_predict(pot_matrix)
@@ -351,6 +393,8 @@ def main() -> None:
         "n_clusters": best_k,
         "selected_silhouette": best_sil,
         "silhouette_by_k": silhouette,
+        "cluster_comparison": cluster_comparison,
+        "kmeans_stability": kmeans_stability,
         "cluster_tier": {str(k): v for k, v in cluster_tier.items()},
         "cluster_growth": {str(k): v for k, v in cluster_growth.items()},
         "potential_features": pot_cols,

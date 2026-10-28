@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import pandas as pd
 import pytest
 
 
 @pytest.fixture(scope="module")
 def context(employees_df):
-    from app.services import assistant_service as assistant
     from app.services import data_service as data, model_service
 
     return (
@@ -46,9 +44,74 @@ def test_internal_router_answers_known_intents(question, expected_fragment, cont
     assert expected_fragment.lower() in answer.lower()
 
 
+@pytest.mark.parametrize(
+    "question,expected_fragment",
+    [
+        ("well done", "thank you"),
+        ("thanks!", "thank you"),
+        ("ok bye", "goodbye"),
+        ("hmm", "anything else"),
+        ("perfect", "thank you"),
+    ],
+)
+def test_smalltalk_is_answered_locally(question, expected_fragment, context):
+    """Compliments/acknowledgements must never fall through to the paid web route."""
+    answer = _ask(question, context)
+    assert answer is not None, f"no local answer for smalltalk: {question}"
+    assert expected_fragment.lower() in answer.lower()
+
+
+@pytest.mark.parametrize(
+    "question,expected_fragment",
+    [
+        ("how will we use it in real life?", "resignation"),
+        ("what is the practical use of this app?", "retention plan"),
+        ("how would a manager use this in practice?", "decision"),
+    ],
+)
+def test_real_life_use_answers_locally(question, expected_fragment, context):
+    answer = _ask(question, context)
+    assert answer is not None, f"no internal answer for: {question}"
+    assert expected_fragment.lower() in answer.lower()
+
+
 def test_router_returns_none_for_a_labour_market_question(context):
     """A question about the outside world must fall through to the live route."""
     assert _ask("what is the average salary for a data scientist in india in 2026?", context) is None
+
+
+@pytest.mark.parametrize(
+    "question,expected_fragment",
+    [
+        ("what is this?", "HR Insight"),
+        ("what is this project about?", "attrition"),
+        ("what is its use?", "Flag who is at risk"),
+        ("how does it work?", "pipeline"),
+        ("what pages does the app have?", "Fairness audit"),
+        ("what model is used?", "ROC-AUC"),
+        ("what dataset is used?", "IBM HR Analytics"),
+        ("what is the nine-box?", "talent"),
+        ("what is SHAP?", "log-odds"),
+        ("what is the decision log?", "SQLite"),
+        ("what is the decision threshold?", "0.384"),
+        ("what are the project results?", "ROC-AUC"),
+        ("what are the limitations?", "Imbalanced"),
+        ("who built this?", "CCSML0301"),
+        ("how do I run it?", "streamlit run app/main.py"),
+        ("what tech stack is used?", "Streamlit"),
+        ("what is TinyFish?", "assistant"),
+        ("who are you?", "assistant"),
+        ("is my data safe?", "local"),
+        ("what is attrition?", "leaving"),
+        ("what is SDG 8?", "SDG 8"),
+        ("what features does the model use?", "IBM-HR"),
+    ],
+)
+def test_project_knowledge_intents(question, expected_fragment, context):
+    """Meta-questions about the app itself are answered locally, never via the web."""
+    answer = _ask(question, context)
+    assert answer is not None, f"no internal answer for: {question}"
+    assert expected_fragment.lower() in answer.lower()
 
 
 def test_router_answers_are_stable(context):
@@ -103,3 +166,74 @@ def test_live_answer_cost_constant_is_positive():
     from app.services import assistant_service as assistant
 
     assert assistant.LIVE_ANSWER_COST_USD > 0
+
+
+def test_clean_live_answer_strips_agent_junk():
+    from app.services import assistant_service as assistant
+
+    assert assistant._clean_live_answer(">>> **hello**") == "**hello**"
+    assert assistant._clean_live_answer("```python\nhi\n```") == "hi"
+    assert assistant._clean_live_answer("  plain answer.  ") == "plain answer."
+
+
+def test_pick_relevant_passages_scores_and_orders():
+    from app.services import assistant_service as assistant
+
+    text = (
+        "Rental prices differ by city. "
+        "The average rent for a 2BHK in Bangalore is about 42,000 rupees per month. "
+        "Navigation menu contents that mean nothing. "
+        "Bangalore rents also jumped this year for smaller flats, according to brokers."
+    )
+    picked = assistant._pick_relevant_passages("average 2BHK rent in bangalore", text)
+    assert len(picked) == 2
+    assert "42,000" in picked[0]  # highest keyword overlap first
+    assert "Navigation menu" not in " ".join(picked)
+
+
+def test_answer_external_falls_back_to_free_excerpts(tmp_path, monkeypatch):
+    from app.services import assistant_service as assistant
+
+    monkeypatch.setattr(assistant, "CACHE_DB", tmp_path / "cache.db")
+    sources = [{"title": "A page", "url": "https://example.com/a", "snippet": "s"}]
+    monkeypatch.setattr(assistant, "search_sources", lambda question, limit=4: sources)
+    monkeypatch.setattr(assistant, "_agent_answer", lambda question, sources: None)
+    monkeypatch.setattr(
+        assistant, "_excerpt_answer", lambda question, sources, n_urls=3, note=None: "**[A page](https://example.com/a)**\n\n> the answer lives here"
+    )
+
+    result = assistant.answer_external("some live question", use_agent=True)
+    assert result["cost_usd"] == 0.0
+    assert "the answer lives here" in result["answer"]
+    assert result["sources"] == ["https://example.com/a"]
+
+
+def test_answer_external_agent_failure_returns_sources(tmp_path, monkeypatch):
+    from app.services import assistant_service as assistant
+
+    monkeypatch.setattr(assistant, "CACHE_DB", tmp_path / "cache.db")
+    sources = [{"title": "T", "url": "https://example.com/x", "snippet": "snippet text"}]
+    monkeypatch.setattr(assistant, "search_sources", lambda question, limit=4: sources)
+    monkeypatch.setattr(assistant, "_agent_answer", lambda question, sources: None)
+    monkeypatch.setattr(assistant, "_excerpt_answer", lambda question, sources, n_urls=3, note=None: None)
+
+    result = assistant.answer_external("another live question")
+    assert "example.com/x" in result["answer"]
+    assert result["cost_usd"] == 0.0
+
+
+def test_answer_external_caches_paid_answer(tmp_path, monkeypatch):
+    from app.services import assistant_service as assistant
+
+    monkeypatch.setattr(assistant, "CACHE_DB", tmp_path / "cache.db")
+    sources = [{"title": "T", "url": "https://example.com/c", "snippet": ""}]
+    monkeypatch.setattr(assistant, "search_sources", lambda question, limit=4: sources)
+    monkeypatch.setattr(assistant, "_agent_answer", lambda question, sources: "synthesised answer")
+
+    first = assistant.answer_external("cached question?")
+    assert first["cost_usd"] == assistant.LIVE_ANSWER_COST_USD
+    monkeypatch.setattr(assistant, "_agent_answer", lambda question, sources: "different answer")
+    second = assistant.answer_external("cached question?")
+    assert second["cached"] is True
+    assert second["answer"] == "synthesised answer"
+    assert "cost_usd" in second

@@ -1,11 +1,11 @@
 {
   "n_employees": 1470,
   "attrition_rate": 0.16122448979591836,
-  "high_risk_count": 91,
-  "high_risk_rate": 0.06190476190476191,
-  "medium_risk_count": 220,
-  "low_risk_count": 1159,
-  "mean_probability": 0.1595070074829932,
+  "high_risk_count": 90,
+  "high_risk_rate": 0.061224489795918366,
+  "medium_risk_count": 207,
+  "low_risk_count": 1173,
+  "mean_probability": 0.15889452517006802,
   "departments": {
     "Research & Development": 961,
     "Sales": 446,
@@ -13,19 +13,19 @@
   },
   "risk_by_department": {
     "Human Resources": {
-      "mean": 0.1909,
+      "mean": 0.1883,
       "count": 63,
-      "sum": 12.0251
+      "sum": 11.8616
     },
     "Research & Development": {
-      "mean": 0.1361,
+      "mean": 0.1352,
       "count": 961,
-      "sum": 130.8341
+      "sum": 129.9747
     },
     "Sales": {
-      "mean": 0.2054,
+      "mean": 0.2057,
       "count": 446,
-      "sum": 91.6161
+      "sum": 91.7387
     }
   },
   "ninebox_counts": {
@@ -41,62 +41,62 @@
   },
   "ninebox_risk": {
     "Core Player": {
-      "mean": 0.1585,
+      "mean": 0.1562,
       "count": 195
     },
     "Effective Performer": {
-      "mean": 0.1177,
+      "mean": 0.1143,
       "count": 150
     },
     "Future Leader": {
-      "mean": 0.0939,
+      "mean": 0.0943,
       "count": 271
     },
     "Growth Prospect": {
-      "mean": 0.2221,
+      "mean": 0.2299,
       "count": 74
     },
     "High Potential": {
-      "mean": 0.1491,
+      "mean": 0.1483,
       "count": 145
     },
     "Inconsistent Performer": {
-      "mean": 0.2174,
+      "mean": 0.2128,
       "count": 153
     },
     "Needs Attention": {
-      "mean": 0.2541,
+      "mean": 0.2553,
       "count": 263
     },
     "Star Performer": {
-      "mean": 0.1073,
+      "mean": 0.1025,
       "count": 137
     },
     "Trusted Professional": {
-      "mean": 0.0928,
+      "mean": 0.0997,
       "count": 82
     }
   },
   "risk_band_counts": {
-    "Low": 1159,
-    "Medium": 220,
-    "High": 91
+    "Low": 1173,
+    "Medium": 207,
+    "High": 90
   },
   "model": {
     "selected": "logistic_regression",
     "calibration": "sigmoid",
-    "decision_threshold": 0.33246551863131846,
+    "decision_threshold": 0.38387293217363805,
     "test_metrics": {
-      "accuracy": 0.8435374149659864,
-      "precision": 0.5116279069767442,
+      "accuracy": 0.8775510204081632,
+      "precision": 0.6666666666666666,
       "recall": 0.46808510638297873,
-      "f1": 0.4888888888888889,
-      "matthews_corrcoef": 0.3972817683573185,
-      "roc_auc": 0.8132483418037729,
-      "pr_auc": 0.5837618062377506,
-      "log_loss": 0.3393712490938116,
-      "brier_score": 0.09881615263331404
+      "f1": 0.55,
+      "matthews_corrcoef": 0.49172872517249594,
+      "roc_auc": 0.8259970712378327,
+      "pr_auc": 0.5949890642273148,
+      "log_loss": 0.3396343320257467,
+      "brier_score": 0.09729065806412114
     }
   },
-  "built_seconds": 0.65
+  "built_seconds": 0.7
 }

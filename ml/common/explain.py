@@ -44,6 +44,13 @@ FEATURE_LABELS: dict[str, str] = {
     "HourlyRate": "Hourly rate",
     "MonthlyRate": "Monthly rate",
     "JobInvolvementScore": "Engagement composite",
+    "PromotionVelocity": "Promotion velocity",
+    "IncomeRelJobLevel": "Income relative to job level",
+    "PromotionGap": "Promotion gap",
+    "TenureRatio_CurrentRole": "Tenure in current role (ratio)",
+    "TenureRatio_Manager": "Tenure with manager (ratio)",
+    "TenureRatio_TotalWorking": "Company tenure share of career",
+    "OverTimeXDistance": "Overtime x distance from home",
 }
 
 

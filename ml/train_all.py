@@ -25,6 +25,7 @@ STEPS: list[tuple[str, list[str]]] = [
     ("Attrition risk model", [sys.executable, "ml/train_attrition.py"]),
     ("Talent matrix", [sys.executable, "ml/train_ninebox.py"]),
     ("Fairness audit", [sys.executable, "ml/train_fairness.py"]),
+    ("Survival analysis", [sys.executable, "ml/train_survival.py"]),
     ("Application dataset", [sys.executable, "ml/build_dataset.py"]),
 ]
 
