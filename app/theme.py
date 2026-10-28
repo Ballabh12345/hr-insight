@@ -739,6 +739,15 @@ label, .stMarkdown p {{ color: {t['text_secondary']}; font-size: 0.875rem; }}
     color: {t['text_primary']};
     line-height: 1.08;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}}
+/* Long textual values (e.g. model version "logistic_regression-sigmoid-42")
+   drop to a compact monospace size instead of pushing out of the card. */
+.kpi-value.long {{
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    line-height: 1.35;
+    font-family: "Consolas", "JetBrains Mono", monospace;
 }}
 .kpi-delta {{ font-size: 0.75rem; margin-top: 0.4rem; color: {t['text_helper']}; }}
 .kpi-delta.good {{ color: {t['support_success']}; font-weight: 600; }}
@@ -796,7 +805,7 @@ label, .stMarkdown p {{ color: {t['text_secondary']}; font-size: 0.875rem; }}
 }}
 
 /* Small note -------------------------------------------------------------- */
-.small-note {{ font-size: 0.75rem; color: {t['text_helper']}; line-height: 1.5; }}
+.small-note {{ font-size: 0.75rem; color: {t['text_helper']}; line-height: 1.5; overflow-wrap: anywhere; }}
 
 /* Staggered Entrance — opacity + translate only, no filter:blur ----------- */
 [data-testid="stMain"] [data-testid="stElementContainer"] {{
@@ -929,12 +938,15 @@ def kpi_card(label: str, value: str, delta: str = "", delta_tone: str = "", acce
     if delta_tone in {"good", "bad"}:
         tone = f" {delta_tone}"
     delta_html = f'<div class="kpi-delta{tone}">{delta}</div>' if delta else ""
+    # Long textual values (model versions, labels) switch to the compact style -
+    # a 2.25rem unbreakable token would overflow the card otherwise.
+    value_class = "kpi-value long" if "<" not in value and len(value) > 14 else "kpi-value"
     # Thin accent top-border (like DESIGN.md specular edge)
     border_style = f' style="border-top:3px solid {top};"' if top else ""
     return (
         f'<div class="kpi-card"{border_style}>'
         f'<div class="kpi-label">{dot}{label}</div>'
-        f'<div class="kpi-value">{value}</div>'
+        f'<div class="{value_class}">{value}</div>'
         f"{delta_html}"
         "</div>"
     )
